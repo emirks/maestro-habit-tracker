@@ -78,8 +78,8 @@ class HabitDeclarationModal(discord.ui.Modal):
             'timestamp': datetime.now().isoformat()
         }
 
-        # # Save the habit declaration to a file
-        # save_habit_declaration(str(interaction.user.id), habit_data)
+        # Save the habit declaration to a file
+        self.save_habit_declaration(str(interaction.user.id), habit_data)
 
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
         habit_tracking_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_tracking_channel)
