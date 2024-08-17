@@ -19,7 +19,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 HABIT_DECLARATION_CHANNEL = 'habit-declaration'
 HABIT_TRACKING_CHANNEL = 'habit-tracking'
-DATA_FILE = 'habit_declarations.json'
+DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration\habit_declarations.json')
 
 @bot.event
 async def on_ready():
@@ -27,9 +27,10 @@ async def on_ready():
     await bot.tree.sync()  # Synchronize the slash commands
     check_habits.start()  # Start the weekly habit check task
 
+# Set up the /declare command
 @bot.tree.command(name="declare", description="Declare a new habit")
 async def declare(interaction: discord.Interaction):
-    modal = HabitDeclarationModal(HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNEL, DATA_FILE)
+    modal = HabitDeclarationModal(HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNEL, DECLARATION_DATA_PATH)
     await interaction.response.send_modal(modal)
 
 # Task to check habits every Saturday
