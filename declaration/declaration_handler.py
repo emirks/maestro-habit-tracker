@@ -5,32 +5,41 @@ from datetime import datetime
 from discord.ext import tasks
 from discord import app_commands
 from tracking.channel_management import TrackingChannelManager
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class DeclarationHandler:
-    def __init__(self, bot: discord.Client, habit_declaration_channel: str, habit_tracking_channel: str, declaration_data_path: str):
-        self.bot = bot
+    def __init__(self, habit_declaration_channel: str, habit_tracking_channel: str, declaration_data_path: str):
         self.habit_declaration_channel = habit_declaration_channel
         self.habit_tracking_channel = habit_tracking_channel
         self.declaration_data_path = declaration_data_path
-
-        # Initialize and register the /declare command
-        bot.tree.command(name="declare", description="Declare a new habit")(self.declare_command)
-
-    @app_commands.command(name="declare", description="Declare a new habit")
-    async def declare_command(self, interaction: discord.Interaction):
-        from declaration.modals import HabitDeclarationModal
-        modal = HabitDeclarationModal(self)
-        await interaction.response.send_modal(modal)
+        logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, {habit_tracking_channel} and data path: {declaration_data_path}")
 
     async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict):
+        logger.debug(f"Handling habit submission for user: {interaction.user.name} (ID: {interaction.user.id})")
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
         habit_tracking_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_tracking_channel)
 
+        if habit_declaration_channel:
+            logger.debug(f"Habit declaration channel found: {habit_declaration_channel.name}")
+        else:
+            logger.warning(f"Habit declaration channel '{self.habit_declaration_channel}' not found.")
+
+        if habit_tracking_channel:
+            logger.debug(f"Habit tracking channel found: {habit_tracking_channel.name}")
+        else:
+            logger.warning(f"Habit tracking channel '{self.habit_tracking_channel}' not found.")
+
         # Save the habit declaration to a file
+        logger.debug("Saving habit declaration...")
         self.save_habit_declaration(str(habit_tracking_channel.id), habit_data)
 
         declaration_data = habit_data['declaration']
+        logger.debug(f"Declaration data: {declaration_data}")
+
         if habit_declaration_channel:
             await habit_declaration_channel.send(
                 f"**Habit Declaration**\n"
@@ -41,30 +50,38 @@ class DeclarationHandler:
                 f"Commitment: {declaration_data['commitment']}\n"
                 f"- {interaction.user.mention}"
             )
+            logger.debug(f"Habit declaration message sent to channel: {habit_declaration_channel.name}")
         
         if habit_tracking_channel:
             # Add the user to the habit-tracking channel
             await habit_tracking_channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+            logger.debug(f"User {interaction.user.name} added to habit tracking channel: {habit_tracking_channel.name}")
             await habit_declaration_channel.send(f"{interaction.user.mention}, you have been added to {habit_tracking_channel.mention} for habit tracking!")
 
         await interaction.response.send_message("Your habit has been declared, saved, and you have been added to the habit-tracking channel!", ephemeral=True)
+        logger.debug("User notified of successful habit declaration.")
 
     def save_habit_declaration(self, channel_id, habit_data):
         try:
             if os.path.exists(self.declaration_data_path):
+                logger.debug(f"Loading existing habit declaration data from: {self.declaration_data_path}")
                 with open(self.declaration_data_path, 'r') as file:
                     data = json.load(file)
             else:
+                logger.debug("No existing declaration data found, creating new data.")
                 data = {}
 
             # Append the new habit data
             if channel_id in data:
+                logger.debug(f"Appending new habit data for channel ID: {channel_id}")
                 data[channel_id].append(habit_data)
             else:
+                logger.debug(f"Creating new entry for channel ID: {channel_id}")
                 data[channel_id] = [habit_data]
 
             with open(self.declaration_data_path, 'w') as file:
                 json.dump(data, file, indent=4)
+                logger.debug(f"Habit declaration data saved to: {self.declaration_data_path}")
 
         except Exception as e:
-            print(f"Error saving data: {e}")
+            logger.error(f"Error saving data: {e}")
