@@ -1,38 +1,56 @@
 {
-    "261152275945226240": [
+    "1271775653154258975": [
         {
-            "habit": "Reading",
-            "cue": "Before sleep",
-            "frequency": "Daily",
-            "intention": "When I get into the bed, I will read 1 minutes",
-            "commitment": "Gather information and live a meaningful life",
-            "timestamp": "2024-08-17T14:34:23.581712"
+            "metadata": {
+                "user_id": "261152275945226240"
+            },
+            "declaration": {
+                "habit": "asefasef",
+                "cue": "aesfsaef",
+                "frequency": "asefsaef",
+                "intention": "asefasefsaf",
+                "commitment": "aefsasfesfa",
+                "timestamp": "2024-08-24T21:42:35.020245"
+            }
         },
         {
-            "habit": "asdf",
-            "cue": "asfd",
-            "frequency": "asdf",
-            "intention": "asdf",
-            "commitment": "asfd",
-            "timestamp": "2024-08-17T16:27:03.004762"
+            "metadata": {
+                "user_id": "261152275945226240",
+                "timestamp": "2024-08-24T21:45:01.093834"
+            },
+            "declaration": {
+                "habit": "asefaesf",
+                "cue": "aesfasef",
+                "frequency": "aesfaefs",
+                "intention": "saefaesf",
+                "commitment": "aesfaefsaefs"
+            }
         },
         {
-            "habit": "Sa\u011fl\u0131kl\u0131 Beslenmek",
-            "cue": "sdafsd",
-            "frequency": "sdafadsfadsf",
-            "intention": "sdafdfsa",
-            "commitment": "adsfafdsfdsa",
-            "timestamp": "2024-08-24T16:58:58.663810"
-        }
-    ],
-    "401791738798276608": [
+            "metadata": {
+                "user_id": "261152275945226240",
+                "timestamp": "2024-08-25T00:50:38.716438"
+            },
+            "declaration": {
+                "habit": "sdafafds",
+                "cue": "sdafafds",
+                "frequency": "asdfafds",
+                "intention": "asdfafds",
+                "commitment": "adsfads"
+            }
+        },
         {
-            "habit": "Read",
-            "cue": "Bed",
-            "frequency": "Everyday",
-            "intention": "Before sleep",
-            "commitment": "asdada",
-            "timestamp": "2024-08-17T14:36:02.179581"
+            "metadata": {
+                "user_id": "261152275945226240",
+                "timestamp": "2024-08-25T00:51:37.203233"
+            },
+            "declaration": {
+                "habit": "qweqwe",
+                "cue": "qrrqw",
+                "frequency": "wqrwqr",
+                "intention": "wtwet",
+                "commitment": "ewtetwew"
+            }
         }
     ]
 }
