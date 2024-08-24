@@ -1,11 +1,17 @@
 import discord
 from datetime import datetime
 from declaration.declaration_handler import DeclarationHandler  # Import the handler
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class HabitDeclarationModal(discord.ui.Modal):
     def __init__(self, handler: DeclarationHandler):
         super().__init__(title="Habit Declaration")
         self.handler = handler
+        logger.debug("HabitDeclarationModal initialized with handler: %s", handler)
 
         # Add the components (text inputs)
         self.habit = discord.ui.TextInput(
@@ -14,6 +20,7 @@ class HabitDeclarationModal(discord.ui.Modal):
             style=discord.TextStyle.short
         )
         self.add_item(self.habit)
+        logger.debug("Added TextInput for habit.")
 
         self.cue = discord.ui.TextInput(
             label="Cue",
@@ -21,6 +28,7 @@ class HabitDeclarationModal(discord.ui.Modal):
             style=discord.TextStyle.short
         )
         self.add_item(self.cue)
+        logger.debug("Added TextInput for cue.")
 
         self.frequency = discord.ui.TextInput(
             label="Frequency",
@@ -28,6 +36,7 @@ class HabitDeclarationModal(discord.ui.Modal):
             style=discord.TextStyle.short
         )
         self.add_item(self.frequency)
+        logger.debug("Added TextInput for frequency.")
 
         self.intention = discord.ui.TextInput(
             label="Implementation Intention",
@@ -35,6 +44,7 @@ class HabitDeclarationModal(discord.ui.Modal):
             style=discord.TextStyle.short
         )
         self.add_item(self.intention)
+        logger.debug("Added TextInput for intention.")
 
         self.commitment = discord.ui.TextInput(
             label="Commitment",
@@ -42,8 +52,11 @@ class HabitDeclarationModal(discord.ui.Modal):
             style=discord.TextStyle.long
         )
         self.add_item(self.commitment)
+        logger.debug("Added TextInput for commitment.")
 
     async def on_submit(self, interaction: discord.Interaction):
+        logger.debug("HabitDeclarationModal submitted by user: %s (ID: %s)", interaction.user.name, interaction.user.id)
+        
         habit_data = {
             'metadata': {
                 'user_id': str(interaction.user.id),
@@ -57,4 +70,7 @@ class HabitDeclarationModal(discord.ui.Modal):
                 'commitment': self.commitment.value,
             },
         }
+        logger.debug("Habit data collected: %s", habit_data)
+
         await self.handler.handle_habit_submission(interaction, habit_data)
+        logger.debug("Habit submission handled for user: %s", interaction.user.name)
