@@ -48,7 +48,7 @@ class HabitDeclarationModal(discord.ui.Modal):
         self.add_item(self.commitment)
 
     # Helper function to save data to a JSON file
-    def save_habit_declaration(self, user_id, habit_data):
+    def save_habit_declaration(self, channel_id, habit_data):
         try:
             if os.path.exists(self.data_path):
                 with open(self.data_path, 'r') as file:
@@ -57,10 +57,10 @@ class HabitDeclarationModal(discord.ui.Modal):
                 data = {}
 
             # Append the new habit data
-            if user_id in data:
-                data[user_id].append(habit_data)
+            if channel_id in data:
+                data[channel_id].append(habit_data)
             else:
-                data[user_id] = [habit_data]
+                data[channel_id] = [habit_data]
 
             with open(self.data_path, 'w') as file:
                 json.dump(data, file, indent=4)
@@ -70,28 +70,34 @@ class HabitDeclarationModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         habit_data = {
-            'habit': self.habit.value,
-            'cue': self.cue.value,
-            'frequency': self.frequency.value,
-            'intention': self.intention.value,
-            'commitment': self.commitment.value,
-            'timestamp': datetime.now().isoformat()
+            'metadata': {
+                'user_id': str(interaction.user.id),
+                'timestamp': datetime.now().isoformat(),
+            },
+            'declaration': {
+                'habit': self.habit.value,
+                'cue': self.cue.value,
+                'frequency': self.frequency.value,
+                'intention': self.intention.value,
+                'commitment': self.commitment.value,
+            },
         }
-
-        # Save the habit declaration to a file
-        self.save_habit_declaration(str(interaction.user.id), habit_data)
 
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
         habit_tracking_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_tracking_channel)
 
+        # Save the habit declaration to a file
+        self.save_habit_declaration(str(habit_tracking_channel.id), habit_data)
+
+        declaration_data = habit_data['declaration']
         if habit_declaration_channel:
             await habit_declaration_channel.send(
                 f"**Habit Declaration**\n"
-                f"Habit: {habit_data['habit']}\n"
-                f"Cue: {habit_data['cue']}\n"
-                f"Frequency: {habit_data['frequency']}\n"
-                f"Implementation Intention: {habit_data['intention']}\n"
-                f"Commitment: {habit_data['commitment']}\n"
+                f"Habit: {declaration_data['habit']}\n"
+                f"Cue: {declaration_data['cue']}\n"
+                f"Frequency: {declaration_data['frequency']}\n"
+                f"Implementation Intention: {declaration_data['intention']}\n"
+                f"Commitment: {declaration_data['commitment']}\n"
                 f"- {interaction.user.mention}"
             )
         
