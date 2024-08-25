@@ -26,7 +26,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 HABIT_DECLARATION_CHANNEL = 'habit-declaration'
 HABIT_TRACKING_CHANNELS_PREFIX = 'habit-tracking'
 HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
-DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration/habit_declarations.json')
+DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration/data/habit_declarations.json')
 
 @bot.event
 async def on_ready():
