@@ -17,7 +17,8 @@ class TrackingChannelManager:
         if not channels:
             # No channels exist, create the first one
             new_channel_name = f"{self.tracking_channel_prefix}-1"
-            new_channel = await category.create_text_channel(new_channel_name)
+            # Create a new channel with specific permissions
+            new_channel = await self._create_tracking_channel(category, new_channel_name)
             return new_channel
 
         # Look for a channel with fewer than 8 members
@@ -28,7 +29,7 @@ class TrackingChannelManager:
         # Create a new channel if all existing ones are full
         new_channel_number = len(channels) + 1
         new_channel_name = f"{self.tracking_channel_prefix}-{new_channel_number}"
-        new_channel = await category.create_text_channel(new_channel_name)
+        new_channel = await self._create_tracking_channel(category, new_channel_name)
         return new_channel
 
     async def clean_up_empty_channels(self):
@@ -51,3 +52,16 @@ class TrackingChannelManager:
 
     def _get_tracking_channels(self, category: discord.CategoryChannel):
         return [channel for channel in category.text_channels if channel.name.startswith(self.tracking_channel_prefix)]
+    
+    async def _create_tracking_channel(self, category: discord.CategoryChannel, new_channel_name: str) -> discord.TextChannel:
+        # Set permissions
+        permission_overwrites = {
+            self.guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+            self.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+
+        new_channel = await category.create_text_channel(
+            new_channel_name,
+            overwrites=permission_overwrites,
+        )
+        return new_channel
