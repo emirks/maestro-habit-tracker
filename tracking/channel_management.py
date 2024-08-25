@@ -6,20 +6,29 @@ class TrackingChannelManager:
         self.tracking_channel_prefix = tracking_channel_prefix
         self.category_name = category_name
 
-    async def get_or_create_tracking_channel(self, user: discord.User) -> discord.TextChannel:
+    async def add_user_to_text_channel(self, user: discord.User, channel: discord.TextChannel):
+        await channel.set_permissions(user, read_messages=True, send_messages=True)
+
+    async def get_or_create_tracking_channel(self) -> discord.TextChannel:
         category = await self._get_category()
         channels = self._get_tracking_channels(category)
-        
+
+        # Check if there are any existing tracking channels
+        if not channels:
+            # No channels exist, create the first one
+            new_channel_name = f"{self.tracking_channel_prefix}-1"
+            new_channel = await category.create_text_channel(new_channel_name)
+            return new_channel
+
+        # Look for a channel with fewer than 8 members
         for channel in channels:
             if len(channel.members) < 8:
-                await channel.set_permissions(user, read_messages=True, send_messages=True)
                 return channel
 
         # Create a new channel if all existing ones are full
         new_channel_number = len(channels) + 1
         new_channel_name = f"{self.tracking_channel_prefix}-{new_channel_number}"
         new_channel = await category.create_text_channel(new_channel_name)
-        await new_channel.set_permissions(user, read_messages=True, send_messages=True)
         return new_channel
 
     async def clean_up_empty_channels(self):
