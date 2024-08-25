@@ -252,6 +252,19 @@
                 "intention": "dev",
                 "commitment": "dev"
             }
+        },
+        {
+            "metadata": {
+                "user_id": "401791738798276608",
+                "timestamp": "2024-08-25T18:41:34.286416"
+            },
+            "declaration": {
+                "habit": "dev",
+                "cue": "dev",
+                "frequency": "dev",
+                "intention": "dev",
+                "commitment": "dev"
+            }
         }
     ]
 }
