@@ -24,7 +24,8 @@ intents.guilds = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 HABIT_DECLARATION_CHANNEL = 'habit-declaration'
-HABIT_TRACKING_CHANNEL = 'habit-tracking'
+HABIT_TRACKING_CHANNELS_PREFIX = 'habit-tracking'
+HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
 DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration/habit_declarations.json')
 
 @bot.event
@@ -33,13 +34,6 @@ async def on_ready():
     
     check_habits.start()  # Start the weekly habit check task
     logger.debug("Started weekly habit check task.")
-
-    # Initialize TrackingChannelManager
-    guild = discord.utils.get(bot.guilds, name="Molecular Momentum")
-    if guild:
-        logger.debug(f"Guild found: {guild.name}")
-    else:
-        logger.warning("Guild 'Molecular Momentum' not found.")
 
     try:
         await bot.tree.sync()  # Synchronize the slash commands with Discord
@@ -57,8 +51,15 @@ async def on_ready():
 @bot.tree.command(name="declare", description="Declare a new habit")
 async def declare(interaction: discord.Interaction):
     logger.debug(f"Declare command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+
+    # Initialize TrackingChannelManager
+    guild = discord.utils.get(bot.guilds, name="Molecular Momentum")
+    if guild:
+        logger.debug(f"Guild found: {guild.name}")
+    else:
+        logger.warning("Guild 'Molecular Momentum' not found.")
     
-    handler = DeclarationHandler(HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNEL, DECLARATION_DATA_PATH)
+    handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
     modal = HabitDeclarationModal(handler)
     
     await interaction.response.send_modal(modal)
