@@ -16,4 +16,4 @@ class TrackingHandler:
         logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix} and data path: {declaration_data_path}")
 
     async def send_habit_check_to_tracking_channel(self, tracking_channel: discord.TextChannel):
-        
+        pass
