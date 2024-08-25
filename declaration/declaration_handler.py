@@ -12,16 +12,18 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class DeclarationHandler:
-    def __init__(self, habit_declaration_channel: str, habit_tracking_channel: str, declaration_data_path: str):
+    def __init__(self, guild: discord.Guild, habit_declaration_channel: str, habit_tracking_channels_prefix: str, habit_tracking_category_name: str, declaration_data_path: str):
+        self.guild = guild
         self.habit_declaration_channel = habit_declaration_channel
-        self.habit_tracking_channel = habit_tracking_channel
+        self.habit_tracking_channels_prefix = habit_tracking_channels_prefix
         self.declaration_data_path = declaration_data_path
-        logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, {habit_tracking_channel} and data path: {declaration_data_path}")
+        self.tracking_channel_manager = TrackingChannelManager(guild, habit_tracking_channels_prefix, habit_tracking_category_name)
+        logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix} and data path: {declaration_data_path}")
 
     async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict):
         logger.debug(f"Handling habit submission for user: {interaction.user.name} (ID: {interaction.user.id})")
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
-        habit_tracking_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_tracking_channel)
+        habit_tracking_channel = await self.tracking_channel_manager.get_or_create_tracking_channel()
 
         if habit_declaration_channel:
             logger.debug(f"Habit declaration channel found: {habit_declaration_channel.name}")
@@ -54,8 +56,10 @@ class DeclarationHandler:
         
         if habit_tracking_channel:
             # Add the user to the habit-tracking channel
-            await habit_tracking_channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+            self.tracking_channel_manager.add_user_to_text_channel(interaction.user, habit_tracking_channel)
             logger.debug(f"User {interaction.user.name} added to habit tracking channel: {habit_tracking_channel.name}")
+
+            # Send info to declaration channel
             await habit_declaration_channel.send(f"{interaction.user.mention}, you have been added to {habit_tracking_channel.mention} for habit tracking!")
 
         await interaction.response.send_message("Your habit has been declared, saved, and you have been added to the habit-tracking channel!", ephemeral=True)
