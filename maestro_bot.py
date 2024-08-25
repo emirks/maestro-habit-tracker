@@ -4,9 +4,9 @@ from discord import app_commands
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timezone
-from declaration.modals import HabitDeclarationModal
+from declaration.components import HabitDeclarationModal
 from declaration.declaration_handler import DeclarationHandler
-# from tracking.channel_management import TrackingChannelManager
+from tracking.channel_management import TrackingChannelManager
 import logging
 
 # Set up logging
