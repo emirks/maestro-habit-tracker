@@ -44,25 +44,21 @@ class DeclarationHandler:
 
         if habit_declaration_channel:
             await habit_declaration_channel.send(
-                f"**Habit Declaration**\n"
+                f"**Habit Declaration: {interaction.user.mention}**\n"
                 f"Habit: {declaration_data['habit']}\n"
                 f"Cue: {declaration_data['cue']}\n"
                 f"Frequency: {declaration_data['frequency']}\n"
                 f"Implementation Intention: {declaration_data['intention']}\n"
-                f"Commitment: {declaration_data['commitment']}\n"
-                f"- {interaction.user.mention}"
+                f"Commitment: {declaration_data['commitment']}"
             )
             logger.debug(f"Habit declaration message sent to channel: {habit_declaration_channel.name}")
         
         if habit_tracking_channel:
             # Add the user to the habit-tracking channel
-            self.tracking_channel_manager.add_user_to_text_channel(interaction.user, habit_tracking_channel)
+            await self.tracking_channel_manager.add_user_to_text_channel(interaction.user, habit_tracking_channel)
             logger.debug(f"User {interaction.user.name} added to habit tracking channel: {habit_tracking_channel.name}")
 
-            # Send info to declaration channel
-            await habit_declaration_channel.send(f"{interaction.user.mention}, you have been added to {habit_tracking_channel.mention} for habit tracking!")
-
-        await interaction.response.send_message("Your habit has been declared, saved, and you have been added to the habit-tracking channel!", ephemeral=True)
+        await interaction.response.send_message(f"{interaction.user.mention} Your habit has been declared, and you have been added to the {habit_tracking_channel.mention} channel for tracking your habit!", ephemeral=True)
         logger.debug("User notified of successful habit declaration.")
 
     def save_habit_declaration(self, channel_id, habit_data):
