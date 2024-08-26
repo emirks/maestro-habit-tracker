@@ -43,21 +43,3 @@ class TrackingHandler:
             data = json.load(file)
 
         return data[tracking_channel_id]
-
-    # Function to send habit check to all users in the habit-tracking channel
-    async def send_habit_check():
-        habit_tracking_channel = discord.utils.get(bot.get_all_channels(), name=HABIT_TRACKING_CHANNEL)
-        if habit_tracking_channel:
-            logger.info(f"Sending habit check to channel: {habit_tracking_channel.name}")
-            for member in habit_tracking_channel.members:
-                try:
-                    await habit_tracking_channel.send(f"{member.mention}, have you completed your habit this week?")
-                    logger.debug(f"Sent habit check message to {member.name}")
-                except discord.Forbidden:
-                    logger.warning(f"Permission denied: Could not message {member.name}")
-                except discord.HTTPException as e:
-                    logger.error(f"Failed to send message to {member.name}: {e}")
-                except Exception as e:
-                    logger.error(f"Unexpected error when messaging {member.name}: {e}")
-        else:
-            logger.warning(f"Habit tracking channel '{HABIT_TRACKING_CHANNEL}' not found.")
