@@ -1,6 +1,7 @@
 import sqlite3
 from contextlib import closing
 import logging
+from datetime import datetime
 
 class DatabaseHandler:
     def __init__(self, db_name='discord_bot.db', init=False):
@@ -66,12 +67,11 @@ class DatabaseHandler:
                 # Tracking table
                 self.conn.execute('''
                     CREATE TABLE IF NOT EXISTS tracking (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
                         habit_id INTEGER NOT NULL,
-                        week INTEGER,
-                        year INTEGER,
-                        completed BOOLEAN,
-                        FOREIGN KEY (habit_id) REFERENCES habits(id)
+                        week_key TEXT NOT NULL,
+                        completed BOOLEAN NOT NULL,
+                        FOREIGN KEY (habit_id) REFERENCES habits(id),
+                        UNIQUE (habit_id, week_key)
                     )
                 ''')
         except sqlite3.Error as e:
@@ -183,7 +183,7 @@ class DatabaseHandler:
             with closing(self.conn.cursor()) as cursor:
                 # Perform a JOIN to retrieve all habits and corresponding user IDs for users in the given channel
                 cursor.execute('''
-                    SELECT h.user_id, h.habit_name 
+                    SELECT h.user_id, h.id, h.habit_name
                     FROM habits h
                     JOIN tracking_channels tc ON h.user_id IN (
                         tc.user1_id, tc.user2_id, tc.user3_id, 
@@ -214,16 +214,20 @@ class DatabaseHandler:
             print(f"Error retrieving habits for user {user_id}: {e}")
             raise
 
-    def mark_habit_completed(self, habit_id, week, year, completed=True):
+    def mark_habit_completed(self, habit_id, completed=True, current_week=True, week_key=None):
         try:
+            if current_week:
+                week_key = datetime.now().strftime("%Y-W%U")
             with self.conn:
                 self.conn.execute('''
-                    INSERT INTO tracking (habit_id, week, year, completed)
-                    VALUES (?, ?, ?, ?)
-                ''', (habit_id, week, year, completed))
-            print(f"Habit with ID {habit_id} marked as completed for week {week}, year {year}.")
+                    INSERT INTO tracking (habit_id, week_key, completed)
+                    VALUES (?, ?, ?)
+                ''', (habit_id, week_key, completed))
+            logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key}.")
+        except sqlite3.IntegrityError:
+            logging.warning(f"Habit with ID {habit_id} already has a record for week {week_key}. Update instead.")
         except sqlite3.Error as e:
-            print(f"Error marking habit as completed: {e}")
+            logging.error(f"Error marking habit as completed: {e}")
             raise
 
     def list_tables(self):
@@ -244,6 +248,24 @@ class DatabaseHandler:
             print(f"Error retrieving schema for table {table_name}: {e}")
             raise
 
+    def reset_db(self):
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+                for table_name in tables:
+                    if table_name[0] != 'sqlite_sequence':  # Skip the special sqlite_sequence table
+                        cursor.execute(f"DROP TABLE IF EXISTS {table_name[0]};")
+                        logging.info(f"Dropped table {table_name[0]}")
+                self.conn.commit()
+                logging.info("Database reset completed.")
+            # Optionally, reinitialize the tables after the reset
+            self._init_tables()
+        except sqlite3.Error as e:
+            logging.error(f"Error resetting the database: {e}")
+            raise
+
+
     def close(self):
         try:
             self.conn.close()
@@ -255,29 +277,29 @@ class DatabaseHandler:
 if __name__ == "__main__":
     db_handler = DatabaseHandler(init=True)
 
-    # Add a new user
-    db_handler.add_user("123456789", "JohnDoe")
+    db_handler.reset_db()
+    # # Add a new user
+    # db_handler.add_user("123456789", "JohnDoe")
 
-    # Attempt to add the same user again
-    db_handler.add_user("123456789", "JohnDoe")
+    # # Attempt to add the same user again
+    # db_handler.add_user("123456789", "JohnDoe")
 
-    # Add a new habit for the user
-    db_handler.add_habit("123456789", "Morning Run", "Morning", "Daily", "Stay fit", "High")
 
-    # Get all habits for a user
-    habits = db_handler.get_user_habits("123456789")
-    print("User's Habits:", habits)
+    # # Get all habits for a user
+    # habits = db_handler.get_user_habits("123456789")
+    # print("User's Habits:", habits)
 
-    # Mark a habit as completed
-    db_handler.mark_habit_completed(1, 35, 2024, True)
+    # # Mark a habit as completed
+    # week_key = datetime.now().strftime("%Y-W%U")
+    # db_handler.mark_habit_completed(1, completed=True, current_week=True)
 
-    # List all tables
-    tables = db_handler.list_tables()
-    print("Tables in the database:", tables)
+    # # List all tables
+    # tables = db_handler.list_tables()
+    # print("Tables in the database:", tables)
 
-    # Get the schema of a specific table
-    schema = db_handler.table_schema("users")
-    print("Users table schema:", schema)
+    # # Get the schema of a specific table
+    # schema = db_handler.table_schema("users")
+    # print("Users table schema:", schema)
 
     # Close the database connection
     db_handler.close()
