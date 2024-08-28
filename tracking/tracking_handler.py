@@ -1,5 +1,6 @@
 import discord
 from tracking.channel_management import TrackingChannelManager
+from data_handler import DatabaseHandler
 import logging
 import json
 
@@ -12,6 +13,7 @@ class TrackingHandler:
         self.guild = guild
         self.declaration_data_path = declaration_data_path
         self.tracking_channel_manager = TrackingChannelManager(guild, habit_tracking_channels_prefix, habit_tracking_category_name)
+        self.db_handler = DatabaseHandler()
         logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}, data path: {declaration_data_path}")
 
     async def send_habit_check_to_all_tracking_channels(self):
@@ -24,18 +26,12 @@ class TrackingHandler:
             await self.send_habit_check_to_tracking_channel(channel)
 
     async def send_habit_check_to_tracking_channel(self, tracking_channel: discord.TextChannel):
-        logger.debug(f"Sending habit check to channel: {tracking_channel.name} (ID: {tracking_channel.id})")
         from tracking.components import HabitCheckView
-        channel_id = str(tracking_channel.id)
-        habit_data = self.read_habit_data_for_channel(channel_id)
+        logger.debug(f"Sending habit check to channel: {tracking_channel.name} (ID: {tracking_channel.id})")
+        
+        habit_data = self.db_handler.get_habits_in_channel(tracking_channel.id)
         logger.debug(f"Retrieved habit data for channel {tracking_channel.name}: {habit_data}")
-
-        for habit in habit_data:
-            metadata = habit['metadata']
-            habit_data = habit['declaration']
-
-            user_id = metadata['user_id']
-            habit_name = habit_data['habit']
+        for user_id, habit_name in habit_data:
             user = tracking_channel.guild.get_member(int(user_id))
             if not user:
                 try:
@@ -55,6 +51,7 @@ class TrackingHandler:
                     logger.error(f"Could not message {user.name}: {e}")
             else:
                 logging.info(f"User not found with id: {user_id}")
+            
 
     def read_habit_data_for_channel(self, tracking_channel_id):
         logger.debug(f"Reading habit data for channel ID: {tracking_channel_id}")
