@@ -46,8 +46,6 @@ class TrackingHandler:
                 except Exception as e:
                     logger.error(f"Error fetching user with ID {user_id}: {e}")
 
-            
-
             if user:
                 try:
                     logger.debug(f"Sending habit check to user: {user.name} (ID: {user.id}) for habit: {habit_name}")
