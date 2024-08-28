@@ -31,7 +31,8 @@ class TrackingHandler:
         
         habit_data = self.db_handler.get_habits_in_channel(tracking_channel.id)
         logger.debug(f"Retrieved habit data for channel {tracking_channel.name}: {habit_data}")
-        for user_id, habit_name in habit_data:
+
+        for user_id, habit_id, habit_name in habit_data:
             user = tracking_channel.guild.get_member(int(user_id))
             if not user:
                 try:
@@ -45,7 +46,7 @@ class TrackingHandler:
             if user:
                 try:
                     logger.debug(f"Sending habit check to user: {user.name} (ID: {user.id}) for habit: {habit_name}")
-                    view = HabitCheckView(self, user_id)  # Pass the handler (self) to the view
+                    view = HabitCheckView(self, user_id, habit_id)  # Pass the handler (self) to the view
                     await tracking_channel.send(f"{user.mention}, have you completed your habit: **{habit_name}** this week?", view=view)
                 except Exception as e:
                     logger.error(f"Could not message {user.name}: {e}")
@@ -61,9 +62,11 @@ class TrackingHandler:
 
         return data[tracking_channel_id]
 
-    async def handle_check_submission(self, interaction: discord.Interaction, completed: bool):
+    async def handle_check_submission(self, interaction: discord.Interaction, habit_id, completed: bool):
         """Handle the habit check response from the user."""
         logger.debug(f"Handling habit check for {interaction.user.name} (ID: {interaction.user.id}), completed: {completed}")
+        self.db_handler.mark_habit_completed(habit_id, completed, current_week=True)
+        self.db_handler.close()
         response_message = f"{interaction.user.mention} Great job on completing your habit!" if completed else "Keep pushing forward on your habit!"
         await interaction.response.send_message(response_message, ephemeral=True)
         logger.debug(f"Sent response to {interaction.user.name}: {response_message}")

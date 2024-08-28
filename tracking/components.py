@@ -7,11 +7,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class HabitCheckView(discord.ui.View):
-    def __init__(self, handler: TrackingHandler, user_id):
+    def __init__(self, handler: TrackingHandler, user_id, habit_id):
         super().__init__(timeout=None)
         self.handler = handler
         self.user_id = int(user_id)
-        logger.debug(f"HabitCheckView initialized with handler: {handler}, user_id: {user_id}")
+        self.habit_id = int(habit_id)
+        logger.debug(f"HabitCheckView initialized with handler: {handler}, user_id: {user_id}, habit_id: {habit_id}")
 
     async def disable_all_buttons(self):
         """Disable all buttons in the view."""
@@ -22,7 +23,7 @@ class HabitCheckView(discord.ui.View):
     async def yes_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id == self.user_id:
             logger.debug(f"'Yes' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
-            await self.handler.handle_check_submission(interaction, completed=True)
+            await self.handler.handle_check_submission(interaction, self.habit_id, completed=True)
             await self.disable_all_buttons()
             await interaction.message.edit(view=self)
         else:
@@ -32,7 +33,7 @@ class HabitCheckView(discord.ui.View):
     async def no_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id == self.user_id:
             logger.debug(f"'No' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
-            await self.handler.handle_check_submission(interaction, completed=False)
+            await self.handler.handle_check_submission(interaction, self.habit_id, completed=False)
             await self.disable_all_buttons()
             await interaction.message.edit(view=self)
         else:
