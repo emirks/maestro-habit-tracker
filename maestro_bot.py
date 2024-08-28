@@ -71,6 +71,26 @@ async def declare(interaction: discord.Interaction):
         logger.warning("Guild is not initialized. Cannot declare habit.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
+# Command to manually trigger the habit check
+@bot.tree.command(name="check", description="Ask users if they completed their habits")
+async def check(interaction: discord.Interaction):
+    logger.debug(f"Check command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+    
+    # Send an initial response to the interaction
+    await interaction.response.defer(ephemeral=True)
+    
+    if guild:
+        handler = TrackingHandler(guild, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
+        
+        # Run the handler asynchronously to avoid blocking
+        await handler.send_habit_check_to_all_tracking_channels()
+        
+        # Optionally, edit the deferred response to notify the user that the check is complete
+        await interaction.followup.send("Habit check has been triggered for all tracking channels.", ephemeral=True)
+    else:
+        logger.warning("Guild is not initialized. Cannot track habit.")
+        await interaction.followup.send("Guild not found. Please try again later.", ephemeral=True)
+
 
 # Task to check habits every Saturday
 @tasks.loop(hours=24)  # Runs every 24 hours
@@ -88,17 +108,7 @@ async def before_check_habits():
     logger.debug("Bot is ready, starting habit check loop.")
 
 
-# Command to manually trigger the habit check
-@bot.tree.command(name="check", description="Ask users if they completed their habits")
-async def check(interaction: discord.Interaction):
-    logger.debug(f"Check command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
-    if guild:
-        handler = TrackingHandler(guild, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
-        await handler.send_habit_check_to_all_tracking_channels()
-        
-    else:
-        logger.warning("Guild is not initialized. Cannot track habit.")
-        await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
+
 
 # Run the bot
 logger.info("Running the bot.")
