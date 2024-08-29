@@ -2,16 +2,29 @@ import sqlite3
 from contextlib import closing
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+DB_NAME = os.getenv('DISCORD_BOT_DB_NAME')
 
 class DatabaseHandler:
-    def __init__(self, db_name='discord_bot.db', init=False):
-        self.db_name = db_name
+    def __init__(self, init=False):
+        self.db_name = DB_NAME
+        self.conn = None
+        self.connect()
+        if init:
+            self._init_tables()
+
+    def connect(self):
+        """Establish a connection to the SQLite database."""
         try:
+            if self.conn:
+                self.conn.close()  # Ensure any existing connection is closed before reopening
             self.conn = sqlite3.connect(self.db_name)
-            if init:
-                self._init_tables()
+            logging.info(f"Connected to the database: {self.db_name}")
         except sqlite3.Error as e:
-            print(f"Error connecting to database: {e}")
+            logging.error(f"Error connecting to database: {e}")
             raise
 
     def _init_tables(self):
@@ -248,27 +261,29 @@ class DatabaseHandler:
             print(f"Error retrieving schema for table {table_name}: {e}")
             raise
 
-    def reset_db(self):
-        try:
-            with closing(self.conn.cursor()) as cursor:
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-                for table_name in tables:
-                    if table_name[0] != 'sqlite_sequence':  # Skip the special sqlite_sequence table
-                        cursor.execute(f"DROP TABLE IF EXISTS {table_name[0]};")
-                        logging.info(f"Dropped table {table_name[0]}")
-                self.conn.commit()
-                logging.info("Database reset completed.")
-            # Optionally, reinitialize the tables after the reset
-            self._init_tables()
-        except sqlite3.Error as e:
-            logging.error(f"Error resetting the database: {e}")
-            raise
+    def reset_db(self, second_check=False):
+        if second_check:
+            try:
+                with closing(self.conn.cursor()) as cursor:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                    tables = cursor.fetchall()
+                    for table_name in tables:
+                        if table_name[0] != 'sqlite_sequence':  # Skip the special sqlite_sequence table
+                            cursor.execute(f"DROP TABLE IF EXISTS {table_name[0]};")
+                            logging.info(f"Dropped table {table_name[0]}")
+                    self.conn.commit()
+                    logging.info("Database reset completed.")
+                # Optionally, reinitialize the tables after the reset
+                self._init_tables()
+            except sqlite3.Error as e:
+                logging.error(f"Error resetting the database: {e}")
+                raise
 
 
     def close(self):
         try:
             self.conn.close()
+            logging.info(f"Disconnected from the database: {self.db_name}")
         except sqlite3.Error as e:
             print(f"Error closing the database connection: {e}")
             raise
@@ -277,7 +292,7 @@ class DatabaseHandler:
 if __name__ == "__main__":
     db_handler = DatabaseHandler(init=True)
 
-    db_handler.reset_db()
+    db_handler.reset_db(second_check=False)
     # # Add a new user
     # db_handler.add_user("123456789", "JohnDoe")
 
