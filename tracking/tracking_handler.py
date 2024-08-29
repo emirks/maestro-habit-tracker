@@ -16,17 +16,30 @@ class TrackingHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}, data path: {declaration_data_path}")
 
+    async def handle_check_submission(self, interaction: discord.Interaction, habit_id, week_key, completed: bool):
+        """Handle the habit check response from the user."""
+        logger.debug(f"Handling habit check for {interaction.user.name} (ID: {interaction.user.id}), completed: {completed}")
+        self.db_handler.connect()
+        self.db_handler.mark_habit_completed(habit_id, completed, week_key=week_key)
+        self.db_handler.close()
+        response_message = f"{interaction.user.mention} Great job on completing your habit!" if completed else "Keep pushing forward on your habit!"
+        await interaction.response.send_message(response_message, ephemeral=True)
+        logger.debug(f"Sent response to {interaction.user.name}: {response_message}")
+
+
     async def send_habit_check_to_all_tracking_channels(self):
         logger.debug("Sending habit check to all tracking channels...")
         category = await self.tracking_channel_manager._get_category()
         channels = self.tracking_channel_manager._get_tracking_channels(category)
         logger.debug(f"Found {len(channels)} tracking channels in category: {category.name}")
 
+        self.db_handler.connect()
         for channel in channels:
             await self.send_habit_check_to_tracking_channel(channel)
+        self.db_handler.close()
 
     async def send_habit_check_to_tracking_channel(self, tracking_channel: discord.TextChannel):
-        from tracking.components import HabitCheckView
+        from tracking.components import BasicHabitCheckView, DetailedHabitCheckView
         logger.debug(f"Sending habit check to channel: {tracking_channel.name} (ID: {tracking_channel.id})")
         
         habit_data = self.db_handler.get_habits_in_channel(tracking_channel.id)
@@ -46,8 +59,16 @@ class TrackingHandler:
             if user:
                 try:
                     logger.debug(f"Sending habit check to user: {user.name} (ID: {user.id}) for habit: {habit_name}")
-                    view = HabitCheckView(self, user_id, habit_id)  # Pass the handler (self) to the view
-                    await tracking_channel.send(f"{user.mention}, have you completed your habit: **{habit_name}** this week?", view=view)
+                    # view = HabitCheckView(self, user_id, habit_id)  # Pass the handler (self) to the view
+                    # await tracking_channel.send(f"{user.mention}, have you completed your habit: **{habit_name}** this week?", view=view)
+                    # Create the view and embed
+                    detailed_view = DetailedHabitCheckView(self, user_id, habit_id)
+                    
+                    await tracking_channel.send(
+                        f"{user.mention}, have you completed your habit: **{habit_name}** this week?", 
+                        embed=detailed_view.embed,  # Include the embed in the message
+                        view=detailed_view
+                    )
                 except Exception as e:
                     logger.error(f"Could not message {user.name}: {e}")
             else:
@@ -61,12 +82,3 @@ class TrackingHandler:
         logger.debug(f"Data read for channel ID {tracking_channel_id}")
 
         return data[tracking_channel_id]
-
-    async def handle_check_submission(self, interaction: discord.Interaction, habit_id, completed: bool):
-        """Handle the habit check response from the user."""
-        logger.debug(f"Handling habit check for {interaction.user.name} (ID: {interaction.user.id}), completed: {completed}")
-        self.db_handler.mark_habit_completed(habit_id, completed, current_week=True)
-        self.db_handler.close()
-        response_message = f"{interaction.user.mention} Great job on completing your habit!" if completed else "Keep pushing forward on your habit!"
-        await interaction.response.send_message(response_message, ephemeral=True)
-        logger.debug(f"Sent response to {interaction.user.name}: {response_message}")
