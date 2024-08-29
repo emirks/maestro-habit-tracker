@@ -83,6 +83,7 @@ class DatabaseHandler:
                         habit_id INTEGER NOT NULL,
                         week_key TEXT NOT NULL,
                         completed BOOLEAN NOT NULL,
+                        streak INTEGER DEFAULT 0,
                         FOREIGN KEY (habit_id) REFERENCES habits(id),
                         UNIQUE (habit_id, week_key)
                     )
@@ -91,6 +92,9 @@ class DatabaseHandler:
             print(f"Error creating tables: {e}")
             raise
 
+    #########################
+    ### INSERTION METHODS ###
+    #########################
     def add_user(self, user_id, username):
         if self.user_exists(user_id):
             print(f"User with ID {user_id} already exists.")
@@ -190,6 +194,107 @@ class DatabaseHandler:
         except sqlite3.Error as e:
             logging.error(f"Error adding user to channel {channel_id}: {e}")
             raise
+        
+    def mark_habit_completed(self, habit_id, completed, current_week=True, week_key=None):
+        try:
+            if not week_key and current_week:
+                week_key = datetime.now().strftime("%Y-W%U")
+            logging.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
+
+            with self.conn:
+                with closing(self.conn.cursor()) as cursor:
+                    # Calculate the current streak based on the last week's streak
+                    cursor.execute('''
+                        SELECT week_key, streak 
+                        FROM tracking 
+                        WHERE habit_id = ? 
+                        ORDER BY week_key DESC 
+                        LIMIT 1
+                    ''', (habit_id,))
+                    last_streak_record = cursor.fetchone()
+
+                    if last_streak_record:
+                        last_week_key, last_streak = last_streak_record
+                        logging.debug(f"Last streak record found: last_week_key={last_week_key}, last_streak={last_streak}")
+
+                        # Check if the last streak record belongs to the last week
+                        if last_week_key == week_key:
+                            new_streak = last_streak  # Same week, streak continues unchanged
+                            logging.debug(f"Same week, streak continues unchanged: new_streak={new_streak}")
+                        elif last_week_key == self.get_previous_week_key(week_key):
+                            new_streak = last_streak + 1  # Last week matches the expected previous week, streak continues
+                            logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
+                        else:
+                            new_streak = 1  # Streak reset
+                            logging.debug(f"Streak reset: new_streak={new_streak}")
+                    else:
+                        new_streak = 1  # No previous record, start a new streak
+                        logging.debug(f"No previous streak record found, starting new streak: new_streak={new_streak}")
+
+                    # Insert or update the tracking record with the new streak
+                    cursor.execute('''
+                        INSERT INTO tracking (habit_id, week_key, completed, streak)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(habit_id, week_key) DO UPDATE SET completed=excluded.completed, streak=excluded.streak
+                    ''', (habit_id, week_key, completed, new_streak))
+                    logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
+
+        except sqlite3.IntegrityError:
+            logging.warning(f"Habit with ID {habit_id} already has a record for week {week_key}.")
+        except sqlite3.Error as e:
+            logging.error(f"Error marking habit as completed: {e}")
+            raise
+
+
+    ###################
+    ### GET METHODS ###
+    ###################
+    def get_habit_data(self, habit_id):
+        """
+        Retrieve habit data from the database based on the habit ID.
+        
+        :param habit_id: The ID of the habit to retrieve.
+        :return: A dictionary containing the habit data or None if the habit is not found.
+        """
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                cursor.execute('''
+                    SELECT 
+                        h.id, 
+                        h.user_id, 
+                        h.tracking_channel_id, 
+                        h.habit_name, 
+                        h.cue, 
+                        h.frequency, 
+                        h.intention, 
+                        h.commitment,
+                        u.username
+                    FROM habits h
+                    JOIN users u ON h.user_id = u.user_id
+                    WHERE h.id = ?
+                ''', (habit_id,))
+                
+                habit = cursor.fetchone()
+                
+                if habit:
+                    habit_data = {
+                        'habit_id': habit[0],
+                        'user_id': habit[1],
+                        'tracking_channel_id': habit[2],
+                        'habit_name': habit[3],
+                        'cue': habit[4],
+                        'frequency': habit[5],
+                        'intention': habit[6],
+                        'commitment': habit[7],
+                        'username': habit[8]
+                    }
+                    return habit_data
+                else:
+                    logging.info(f"No habit found with ID {habit_id}.")
+                    return None
+        except sqlite3.Error as e:
+            logging.error(f"Error retrieving habit data for habit ID {habit_id}: {e}")
+            raise
 
     def get_habits_in_channel(self, channel_id):
         try:
@@ -214,53 +319,53 @@ class DatabaseHandler:
         except sqlite3.Error as e:
             logging.error(f"Error retrieving habits for channel {channel_id}: {e}")
             raise
+    
+    def get_previous_week_key(self, current_week_key):
+        """
+        Get the previous week key in the format 'YYYY-Www'.
+        
+        :param current_week_key: The current week key.
+        :return: The previous week key.
+        """
+        year, week = map(int, current_week_key.split('-W'))
+        logging.debug(f"Calculating previous week key from: current_week_key={current_week_key}")
+        
+        if week > 1:
+            previous_week_key = f"{year}-W{week-1:02d}"
+        else:
+            # Handle the case where the week is 1, and we need to go back to the last week of the previous year
+            previous_year = year - 1
+            previous_week = datetime.strptime(f"{previous_year}-12-28", "%Y-%m-%d").isocalendar()[1]
+            previous_week_key = f"{previous_year}-W{previous_week:02d}"
+        
+        logging.debug(f"Previous week key calculated: previous_week_key={previous_week_key}")
+        return previous_week_key
 
-
-    def get_user_habits(self, user_id):
+    def get_current_streak(self, habit_id):
+        """
+        Retrieve the current streak for the given habit ID.
+        
+        :param habit_id: The ID of the habit.
+        :return: The current streak value.
+        """
         try:
             with closing(self.conn.cursor()) as cursor:
                 cursor.execute('''
-                    SELECT * FROM habits WHERE user_id = ?
-                ''', (user_id,))
-                return cursor.fetchall()
+                    SELECT streak 
+                    FROM tracking 
+                    WHERE habit_id = ? 
+                    ORDER BY week_key DESC 
+                    LIMIT 1
+                ''', (habit_id,))
+                streak_record = cursor.fetchone()
+                return streak_record[0] if streak_record else 0
         except sqlite3.Error as e:
-            print(f"Error retrieving habits for user {user_id}: {e}")
+            logging.error(f"Error retrieving current streak for habit ID {habit_id}: {e}")
             raise
 
-    def mark_habit_completed(self, habit_id, completed=True, current_week=True, week_key=None):
-        try:
-            if current_week:
-                week_key = datetime.now().strftime("%Y-W%U")
-            with self.conn:
-                self.conn.execute('''
-                    INSERT INTO tracking (habit_id, week_key, completed)
-                    VALUES (?, ?, ?)
-                ''', (habit_id, week_key, completed))
-            logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key}.")
-        except sqlite3.IntegrityError:
-            logging.warning(f"Habit with ID {habit_id} already has a record for week {week_key}. Update instead.")
-        except sqlite3.Error as e:
-            logging.error(f"Error marking habit as completed: {e}")
-            raise
-
-    def list_tables(self):
-        try:
-            with closing(self.conn.cursor()) as cursor:
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                return cursor.fetchall()
-        except sqlite3.Error as e:
-            print(f"Error listing tables: {e}")
-            raise
-
-    def table_schema(self, table_name):
-        try:
-            with closing(self.conn.cursor()) as cursor:
-                cursor.execute(f"PRAGMA table_info({table_name});")
-                return cursor.fetchall()
-        except sqlite3.Error as e:
-            print(f"Error retrieving schema for table {table_name}: {e}")
-            raise
-
+    ###########################
+    ### MAINTAINING METHODS ###
+    ###########################
     def reset_db(self, second_check=False):
         if second_check:
             try:
