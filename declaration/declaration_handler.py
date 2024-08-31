@@ -10,35 +10,47 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class DeclarationHandler:
-    def __init__(self, guild: discord.Guild, habit_declaration_channel: str, habit_tracking_channels_prefix: str, habit_tracking_category_name: str, declaration_data_path: str):
+    def __init__(self, guild: discord.Guild, habit_declaration_channel: str, habit_tracking_channels_prefix: str, habit_tracking_category_name: str):
         self.guild = guild
         self.habit_declaration_channel = habit_declaration_channel
         self.habit_tracking_channels_prefix = habit_tracking_channels_prefix
-        self.declaration_data_path = declaration_data_path
         self.tracking_channel_manager = TrackingChannelManager(guild, habit_tracking_channels_prefix, habit_tracking_category_name)
         self.db_handler = DatabaseHandler()
-        logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix} and data path: {declaration_data_path}")
+        logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix}")
 
     async def send_declaration_view(self, interaction: discord.Interaction):
         from declaration.components import DeclarationView
+        
+        # Create the DeclarationView and its embed
         declaration_view = DeclarationView(self, interaction.user.id)
+
+        # Send the message with both embeds
         await interaction.response.send_message(
-            embed=declaration_view.embed,  # Include the embed in the message
+            embeds=[declaration_view.instructions_embed, declaration_view.full_form_embed],  # Include both embeds
             view=declaration_view
         )
 
-    async def send_declaration_modal(self, interaction: discord.Interaction):
+    async def send_declaration_modal(self, interaction: discord.Interaction, habit_id_given=None):
         from declaration.components import HabitDeclarationModal
-        modal = HabitDeclarationModal(self)
+        modal = HabitDeclarationModal(self, habit_id_given)
         await interaction.response.send_modal(modal)
 
-    async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict):
-        # Add the user to database if not exists
+    async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict, habit_id=None):
+        # Add the user to the database if they do not exist
+        self.db_handler.connect()
         self.db_handler.add_user(interaction.user.id, interaction.user.name)
 
         logger.debug(f"Handling habit submission for user: {interaction.user.name} (ID: {interaction.user.id})")
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
         habit_tracking_channel = await self.tracking_channel_manager.get_or_create_tracking_channel()
+        
+        # If habit id is given, update the data
+        if habit_id:
+            self.db_handler.add_habit_with_data(habit_data, habit_tracking_channel.id, habit_id)
+            self.db_handler.close()
+            await interaction.response.send_message(f"Your habit has been updated")
+            return
+
 
         if habit_declaration_channel:
             logger.debug(f"Habit declaration channel found: {habit_declaration_channel.name}")
@@ -50,7 +62,6 @@ class DeclarationHandler:
         else:
             logger.warning(f"Habit tracking channel not found.")
 
-        
         # Log declaration data
         declaration_data = habit_data['declaration']
         logger.debug(f"Declaration data: {declaration_data}")
@@ -60,10 +71,8 @@ class DeclarationHandler:
             await habit_declaration_channel.send(
                 f"**Habit Declaration: {interaction.user.mention}**\n"
                 f"Habit: {declaration_data['habit']}\n"
-                f"Cue: {declaration_data['cue']}\n"
-                f"Frequency: {declaration_data['frequency']}\n"
-                f"Implementation Intention: {declaration_data['intention']}\n"
-                f"Commitment: {declaration_data['commitment']}"
+                f"Time/Location: {declaration_data['time_location']}\n"
+                f"Identity: {declaration_data['identity']}\n"
             )
             logger.debug(f"Habit declaration message sent to channel: {habit_declaration_channel.name}")
         

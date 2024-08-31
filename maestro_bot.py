@@ -24,7 +24,6 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 HABIT_DECLARATION_CHANNEL = 'habit-declaration'
 HABIT_TRACKING_CHANNELS_PREFIX = 'habit-tracking'
 HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
-DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration/data/habit_declarations.json')
 
 guild = None
 decalration_handler = None
@@ -43,8 +42,8 @@ async def on_ready():
         logger.warning("Guild 'Molecular Momentum' not found.")
     
     # Initialize handlers
-    declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
-    tracking_handler = TrackingHandler(guild, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
+    declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
+    tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
 
     # Start the weekly habit check task
     check_habits.start()  

@@ -1,5 +1,6 @@
 import discord
 from tracking.channel_management import TrackingChannelManager
+from declaration.declaration_handler import DeclarationHandler
 from data_handler import DatabaseHandler
 import logging
 import json
@@ -9,12 +10,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class TrackingHandler:
-    def __init__(self, guild: discord.Guild, habit_tracking_channels_prefix: str, habit_tracking_category_name: str, declaration_data_path: str):
+    def __init__(self, guild: discord.Guild, declaration_handler: DeclarationHandler, habit_tracking_channels_prefix: str, habit_tracking_category_name: str):
         self.guild = guild
-        self.declaration_data_path = declaration_data_path
         self.tracking_channel_manager = TrackingChannelManager(guild, habit_tracking_channels_prefix, habit_tracking_category_name)
+        self.declaration_handler = declaration_handler
         self.db_handler = DatabaseHandler()
-        logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}, data path: {declaration_data_path}")
+        logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}")
 
     async def handle_check_submission(self, interaction: discord.Interaction, habit_id, week_key, completed: bool):
         """Handle the habit check response from the user."""
@@ -62,10 +63,10 @@ class TrackingHandler:
                     # view = HabitCheckView(self, user_id, habit_id)  # Pass the handler (self) to the view
                     # await tracking_channel.send(f"{user.mention}, have you completed your habit: **{habit_name}** this week?", view=view)
                     # Create the view and embed
-                    detailed_view = DetailedHabitCheckView(self, user_id, habit_id)
+                    detailed_view = DetailedHabitCheckView(self, self.declaration_handler, user, habit_id)
                     
                     await tracking_channel.send(
-                        f"{user.mention}, have you completed your habit: **{habit_name}** this week?", 
+                        detailed_view.check_text, 
                         embed=detailed_view.embed,  # Include the embed in the message
                         view=detailed_view
                     )
