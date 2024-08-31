@@ -19,6 +19,11 @@ class DeclarationHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix} and data path: {declaration_data_path}")
 
+    async def send_habit_declaration(self, interaction: discord.Interaction):
+        from declaration.components import HabitDeclarationModal, DeclarationHandler
+        modal = HabitDeclarationModal(self)
+        await interaction.response.send_modal(modal)
+
     async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict):
         # Add the user to database if not exists
         self.db_handler.add_user(interaction.user.id, interaction.user.name)

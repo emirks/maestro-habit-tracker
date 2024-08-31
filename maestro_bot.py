@@ -64,8 +64,8 @@ async def declare(interaction: discord.Interaction):
 
     if guild:
         handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
-        modal = HabitDeclarationModal(handler)
-        await interaction.response.send_modal(modal)
+
+        await handler.send_habit_declaration(interaction)
         logger.debug("HabitDeclarationModal sent to user.")
     else:
         logger.warning("Guild is not initialized. Cannot declare habit.")
