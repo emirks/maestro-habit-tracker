@@ -207,53 +207,68 @@ class DatabaseHandler:
         
     def mark_habit_completed(self, habit_id, completed, current_week=True, week_key=None):
         try:
-            if not week_key and current_week:
-                week_key = datetime.now().strftime("%Y-W%U")
+            week_key = self._get_week_key(current_week, week_key)
             logging.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
 
             with self.conn:
                 with closing(self.conn.cursor()) as cursor:
-                    # Calculate the current streak based on the last week's streak
-                    cursor.execute('''
-                        SELECT week_key, streak 
-                        FROM tracking 
-                        WHERE habit_id = ? 
-                        ORDER BY week_key DESC 
-                        LIMIT 1
-                    ''', (habit_id,))
-                    last_streak_record = cursor.fetchone()
+                    last_streak_record = self._get_last_streak_record(cursor, habit_id)
 
-                    if last_streak_record:
-                        last_week_key, last_streak = last_streak_record
-                        logging.debug(f"Last streak record found: last_week_key={last_week_key}, last_streak={last_streak}")
-
-                        # Check if the last streak record belongs to the last week
-                        if last_week_key == week_key:
-                            new_streak = last_streak  # Same week, streak continues unchanged
-                            logging.debug(f"Same week, streak continues unchanged: new_streak={new_streak}")
-                        elif last_week_key == self.get_previous_week_key(week_key):
-                            new_streak = last_streak + 1  # Last week matches the expected previous week, streak continues
-                            logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
-                        else:
-                            new_streak = 1  # Streak reset
-                            logging.debug(f"Streak reset: new_streak={new_streak}")
-                    else:
-                        new_streak = 1  # No previous record, start a new streak
-                        logging.debug(f"No previous streak record found, starting new streak: new_streak={new_streak}")
-
-                    # Insert or update the tracking record with the new streak
-                    cursor.execute('''
-                        INSERT INTO tracking (habit_id, week_key, completed, streak)
-                        VALUES (?, ?, ?, ?)
-                        ON CONFLICT(habit_id, week_key) DO UPDATE SET completed=excluded.completed, streak=excluded.streak
-                    ''', (habit_id, week_key, completed, new_streak))
-                    logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
+                    new_streak = self._calculate_new_streak(completed, last_streak_record, week_key)
+                    self._insert_or_update_tracking(cursor, habit_id, week_key, completed, new_streak)
 
         except sqlite3.IntegrityError:
             logging.warning(f"Habit with ID {habit_id} already has a record for week {week_key}.")
         except sqlite3.Error as e:
             logging.error(f"Error marking habit as completed: {e}")
             raise
+
+    def _get_week_key(self, current_week, week_key):
+        if not week_key and current_week:
+            week_key = datetime.now().strftime("%Y-W%U")
+        return week_key
+
+    def _get_last_streak_record(self, cursor, habit_id):
+        cursor.execute('''
+            SELECT week_key, streak 
+            FROM tracking 
+            WHERE habit_id = ? 
+            ORDER BY week_key DESC 
+            LIMIT 1
+        ''', (habit_id,))
+        last_streak_record = cursor.fetchone()
+        if last_streak_record:
+            logging.debug(f"Last streak record found: last_week_key={last_streak_record[0]}, last_streak={last_streak_record[1]}")
+        return last_streak_record
+
+    def _calculate_new_streak(self, completed, last_streak_record, week_key):
+        if last_streak_record and completed:
+            last_week_key, last_streak = last_streak_record
+            if last_week_key == week_key:
+                logging.debug(f"Same week, streak continues unchanged: new_streak={last_streak}")
+                return last_streak  # Same week, streak continues unchanged
+            elif last_week_key == self.get_previous_week_key(week_key):
+                new_streak = last_streak + 1  # Last week matches the expected previous week, streak continues
+                logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
+                return new_streak
+            else:
+                logging.debug(f"Streak reset: new_streak=1")
+                return 1  # Streak reset
+        elif completed:
+            logging.debug(f"No previous streak record found, starting new streak: new_streak=1")
+            return 1  # No previous record, start a new streak
+        else:
+            logging.debug(f"Not completed, resetting streak: new_streak=0")
+            return 0
+
+    def _insert_or_update_tracking(self, cursor, habit_id, week_key, completed, new_streak):
+        cursor.execute('''
+            INSERT INTO tracking (habit_id, week_key, completed, streak)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(habit_id, week_key) DO UPDATE SET completed=excluded.completed, streak=excluded.streak
+        ''', (habit_id, week_key, completed, new_streak))
+        logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
+
 
 
     ###################
