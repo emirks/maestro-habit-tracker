@@ -45,10 +45,8 @@ class DatabaseHandler:
                         user_id INTEGER NOT NULL,
                         tracking_channel_id INTEGER,
                         habit_name TEXT NOT NULL,
-                        cue TEXT,
-                        frequency TEXT,
-                        intention TEXT,
-                        commitment TEXT,
+                        time_location TEXT,
+                        identity TEXT,
                         FOREIGN KEY (user_id) REFERENCES users(user_id),
                         FOREIGN KEY (tracking_channel_id) REFERENCES tracking_channels(channel_id)
                     )
@@ -120,27 +118,39 @@ class DatabaseHandler:
             raise
 
 
-    def add_habit_with_data(self, habit_data, tracking_channel_id):
+    def add_habit_with_data(self, habit_data, tracking_channel_id, habit_id=None):
         try:
             # Extract data from the habit_data dictionary
             user_id = habit_data['metadata']['user_id']
             habit_name = habit_data['declaration']['habit']
-            cue = habit_data['declaration']['cue']
-            frequency = habit_data['declaration']['frequency']
-            intention = habit_data['declaration']['intention']
-            commitment = habit_data['declaration']['commitment']
+            time_location = habit_data['declaration']['time_location']
+            identity = habit_data['declaration']['identity']
+
+            # If habit id is given, update the data
+            if habit_id:
+                 with self.conn:
+                    self.conn.execute('''
+                        UPDATE habits
+                        SET user_id = ?, tracking_channel_id = ?, habit_name = ?, time_location = ?, identity = ?
+                        WHERE id = ?
+                    ''', (user_id, tracking_channel_id, habit_name, time_location, identity, habit_id))
+                
+                    logging.info(f"Habit ID {habit_id} updated successfully with new data.")
+                    
+                    return
 
             # Insert the habit data into the habits table
             with self.conn:
                 self.conn.execute('''
-                    INSERT INTO habits (user_id, tracking_channel_id, habit_name, cue, frequency, intention, commitment)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (user_id, tracking_channel_id, habit_name, cue, frequency, intention, commitment))
+                    INSERT INTO habits (user_id, tracking_channel_id, habit_name, time_location, identity)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (user_id, tracking_channel_id, habit_name, time_location, identity))
             
             logging.info(f"Habit '{habit_name}' added successfully for user {user_id} in channel {tracking_channel_id}.")
         except sqlite3.Error as e:
             logging.error(f"Error adding habit for user {user_id}: {e}")
             raise
+
 
     def add_user_to_tracking_channel(self, user_id, channel_id):
         try:
@@ -264,10 +274,8 @@ class DatabaseHandler:
                         h.user_id, 
                         h.tracking_channel_id, 
                         h.habit_name, 
-                        h.cue, 
-                        h.frequency, 
-                        h.intention, 
-                        h.commitment,
+                        h.time_location, 
+                        h.identity,
                         u.username
                     FROM habits h
                     JOIN users u ON h.user_id = u.user_id
@@ -282,11 +290,9 @@ class DatabaseHandler:
                         'user_id': habit[1],
                         'tracking_channel_id': habit[2],
                         'habit_name': habit[3],
-                        'cue': habit[4],
-                        'frequency': habit[5],
-                        'intention': habit[6],
-                        'commitment': habit[7],
-                        'username': habit[8]
+                        'time_location': habit[4],
+                        'identity': habit[5],
+                        'username': habit[6]
                     }
                     return habit_data
                 else:
