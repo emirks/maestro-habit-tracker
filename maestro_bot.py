@@ -1,10 +1,8 @@
 import discord
 from discord.ext import commands, tasks
-from discord import app_commands
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timezone
-from declaration.components import HabitDeclarationModal
 from declaration.declaration_handler import DeclarationHandler
 from tracking.tracking_handler import TrackingHandler
 import logging
@@ -65,7 +63,7 @@ async def declare(interaction: discord.Interaction):
     if guild:
         handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
 
-        await handler.send_habit_declaration(interaction)
+        await handler.send_declaration_view(interaction)
         logger.debug("HabitDeclarationModal sent to user.")
     else:
         logger.warning("Guild is not initialized. Cannot declare habit.")
