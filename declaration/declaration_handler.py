@@ -19,8 +19,16 @@ class DeclarationHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix} and data path: {declaration_data_path}")
 
-    async def send_habit_declaration(self, interaction: discord.Interaction):
-        from declaration.components import HabitDeclarationModal, DeclarationHandler
+    async def send_declaration_view(self, interaction: discord.Interaction):
+        from declaration.components import DeclarationView
+        declaration_view = DeclarationView(self, interaction.user.id)
+        await interaction.response.send_message(
+            embed=declaration_view.embed,  # Include the embed in the message
+            view=declaration_view
+        )
+
+    async def send_declaration_modal(self, interaction: discord.Interaction):
+        from declaration.components import HabitDeclarationModal
         modal = HabitDeclarationModal(self)
         await interaction.response.send_modal(modal)
 
