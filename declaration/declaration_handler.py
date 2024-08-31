@@ -40,7 +40,7 @@ class DeclarationHandler:
         if habit_tracking_channel:
             logger.debug(f"Habit tracking channel found: {habit_tracking_channel.name}")
         else:
-            logger.warning(f"Habit tracking channel '{self.habit_tracking_channel}' not found.")
+            logger.warning(f"Habit tracking channel not found.")
 
         
         # Log declaration data
@@ -71,34 +71,5 @@ class DeclarationHandler:
         self.db_handler.add_habit_with_data(habit_data, habit_tracking_channel.id)
         self.db_handler.close()
 
-        # Save the habit declaration to a file
-        logger.debug("Saving habit declaration...")
-        self.save_habit_declaration(str(habit_tracking_channel.id), habit_data)
-
         await interaction.response.send_message(f"{interaction.user.mention} Your habit has been declared, and you have been added to the {habit_tracking_channel.mention} channel for tracking your habit!", ephemeral=True)
         logger.debug("User notified of successful habit declaration.")
-
-    def save_habit_declaration(self, channel_id, habit_data):
-        try:
-            if os.path.exists(self.declaration_data_path):
-                logger.debug(f"Loading existing habit declaration data from: {self.declaration_data_path}")
-                with open(self.declaration_data_path, 'r') as file:
-                    data = json.load(file)
-            else:
-                logger.debug("No existing declaration data found, creating new data.")
-                data = {}
-
-            # Append the new habit data
-            if channel_id in data:
-                logger.debug(f"Appending new habit data for channel ID: {channel_id}")
-                data[channel_id].append(habit_data)
-            else:
-                logger.debug(f"Creating new entry for channel ID: {channel_id}")
-                data[channel_id] = [habit_data]
-
-            with open(self.declaration_data_path, 'w') as file:
-                json.dump(data, file, indent=4)
-                logger.debug(f"Habit declaration data saved to: {self.declaration_data_path}")
-
-        except Exception as e:
-            logger.error(f"Error saving data: {e}")
