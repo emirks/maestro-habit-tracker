@@ -81,7 +81,7 @@ class DetailedHabitCheckView(discord.ui.View):
         embed.add_field(name="Time / Location", value=self.habit_data['time_location'], inline=False)
         
         # Motivation and Identity Reminder
-        embed.add_field(name="Don't Forget!", value=f"You're {self.habit_data['habit_name']} to become {self.habit_data['identity']}.", inline=False)
+        embed.add_field(name="Don't Forget Your Purpose!", value=f"You're {self.habit_data['habit_name'].lower()} to become {self.habit_data['identity'].lower()}.", inline=False)
         
         embed.set_thumbnail(url=self.get_random_image_url())  # Random image
         return embed
@@ -98,7 +98,6 @@ class DetailedHabitCheckView(discord.ui.View):
             await self.tracking_handler.handle_check_submission(interaction, self.habit_id, self.week_key, completed=True)
             await self.disable_all_buttons()
             await interaction.message.edit(view=self)
-            await interaction.followup.send(f"Awesome job, {interaction.user.mention}! Keep that streak going! 🔥", ephemeral=True)
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
 

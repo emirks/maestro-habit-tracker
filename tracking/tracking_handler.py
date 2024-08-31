@@ -1,13 +1,16 @@
 import discord
 from tracking.channel_management import TrackingChannelManager
+from tracking import congrats_messages
 from declaration.declaration_handler import DeclarationHandler
 from data_handler import DatabaseHandler
 import logging
 import json
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 class TrackingHandler:
     def __init__(self, guild: discord.Guild, declaration_handler: DeclarationHandler, habit_tracking_channels_prefix: str, habit_tracking_category_name: str):
@@ -17,13 +20,18 @@ class TrackingHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}")
 
+    def get_random_congrats_message(self, interaction):
+        user_mention = interaction.user.mention
+        random_message = random.choice(congrats_messages)
+        return random_message.format(user_mention=user_mention)
+    
     async def handle_check_submission(self, interaction: discord.Interaction, habit_id, week_key, completed: bool):
         """Handle the habit check response from the user."""
         logger.debug(f"Handling habit check for {interaction.user.name} (ID: {interaction.user.id}), completed: {completed}")
         self.db_handler.connect()
         self.db_handler.mark_habit_completed(habit_id, completed, week_key=week_key)
         self.db_handler.close()
-        response_message = f"{interaction.user.mention} Great job on completing your habit!" if completed else "Keep pushing forward on your habit!"
+        response_message = self.get_random_congrats_message(interaction)
         await interaction.response.send_message(response_message, ephemeral=True)
         logger.debug(f"Sent response to {interaction.user.name}: {response_message}")
 

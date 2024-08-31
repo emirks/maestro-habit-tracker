@@ -56,3 +56,34 @@ dragon_urls = [
     "https://www.dnd5eapi.co/api/images/monsters/adult-blue-dragon.png",
     "https://www.dnd5eapi.co/api/images/monsters/adult-brass-dragon.png"
 ]
+
+congrats_messages = [
+    f"Awesome job, {{user_mention}}! Keep that streak going! 🔥",
+    f"Fantastic work, {{user_mention}}! You're unstoppable! 🚀",
+    f"Way to go, {{user_mention}}! You're crushing it! 💪",
+    f"Keep it up, {{user_mention}}! You're doing amazing! 🌟",
+    f"Outstanding effort, {{user_mention}}! Your persistence is paying off! 🏆",
+    f"Incredible job, {{user_mention}}! You're on fire! 🔥",
+    f"You're on a roll, {{user_mention}}! Keep the momentum going! 🔄",
+    f"Brilliant, {{user_mention}}! You're making great strides! 🌈",
+    f"Impressive, {{user_mention}}! You're a powerhouse! ⚡",
+    f"Well done, {{user_mention}}! You're setting the bar high! 🎯",
+    f"Great work, {{user_mention}}! You're a force to be reckoned with! 💥",
+    f"You're doing fantastic, {{user_mention}}! Keep shining! ✨",
+    f"Amazing, {{user_mention}}! You're showing everyone how it's done! 👏",
+    f"You're nailing it, {{user_mention}}! Keep pushing forward! 💪",
+    f"Superb, {{user_mention}}! You're making it happen! 🌟",
+    f"Kudos, {{user_mention}}! Your dedication is inspiring! 🎉",
+    f"Outstanding, {{user_mention}}! You're reaching new heights! 🏔️",
+    f"Great going, {{user_mention}}! Keep that energy high! ⚡",
+    f"Spectacular job, {{user_mention}}! You're a star! 🌟",
+    f"Fantastic progress, {{user_mention}}! Keep smashing those goals! 🎯",
+    f"You're doing great, {{user_mention}}! Keep up the excellent work! 👍",
+    f"Impressive work, {{user_mention}}! You're a true champion! 🏆",
+    f"You're on the right track, {{user_mention}}! Keep pushing! 🛤️",
+    f"Keep it up, {{user_mention}}! You're showing incredible strength! 💪",
+    f"Excellent, {{user_mention}}! You're making your mark! ✨",
+    f"You're doing awesome, {{user_mention}}! Keep blazing that trail! 🌟"
+]
+
+
