@@ -14,7 +14,8 @@ class DeclarationView(discord.ui.View):
         self.user_id = user_id
         self.handler = handler
 
-        self.embed = self.create_embed()  # Create the embed during initialization
+        self.instructions_embed = self.create_instructions_embed()  # Create the embed during initialization
+        self.full_form_embed = self.create_full_form_embed()
         logger.debug(f"DeclareView initialized with handler: %s", handler)
 
     async def disable_all_buttons(self):
@@ -22,24 +23,24 @@ class DeclarationView(discord.ui.View):
         for item in self.children:
             item.disabled = True
 
-    def create_embed(self):
+    def create_instructions_embed(self):
         """Create and return the embed for the Habit Check."""
         embed = discord.Embed(
             title="Habit Declaration",
             description=(
-                "An atomic habit is a regular practice that is small and easy to do, and can make a remarkable difference in your life.\n"
                 "Before declaring your habit, please read the following:\n\n"
                 "**Preliminary Info:**\n"
                 "- Your habit should be specific and measurable.\n"
                 "- Declare habits that you can commit to daily.\n\n"
                 "**Example Declaration:**\n"
-                "I will ``meditate **for** 5 mins``, ``when I wake up`` so that I can become ``a mindful person``.\n\n"
-                "**1- Define your habit:**\n"
-                "``Meditate for 5 mins``\n"
-                "**2- Get specific:** Setting an exact time and place means not waiting around for inspiration to strike. \n\n"
-                "``When I wake up``\n"
-                "**3- Ground it in an identity:** The ultimate form of motivation is when a habit becomes part of who you are.\n\n"
-                "``A mindful person``"
+                "``I will meditate for 5 mins, when I wake up so that I can become a mindful person.``\n\n"
+                "**Declaration Steps:**\n"
+                "**1- Define your habit:** An atomic habit is a regular practice that is small and easy to do, and can make a remarkable difference in your life.\n"
+                "``Meditate for 5 mins``\n\n"
+                "**2- Get specific:** Setting an exact time and place means not waiting around for inspiration to strike. \n"
+                "``When I wake up``\n\n"
+                "**3- Ground it in an identity:** The ultimate form of motivation is when a habit becomes part of who you are.\n"
+                "``A mindful person``\n"
             ),
             color=discord.Color.blue()
         )
@@ -47,19 +48,32 @@ class DeclarationView(discord.ui.View):
         embed.set_thumbnail(url=self.get_random_image_url())  # Random pikachu image
         return embed
     
+    def create_full_form_embed(self):
+        """Create and return the embed for the Habit Check."""
+        embed = discord.Embed(
+        title="Full Habit Declaration Format",
+        description=(
+                "I will ``habit``, ``time/location`` so that I can become ``type of person I want to be``\n\n"
+                "Please ensure that your habit declaration follows this structure."
+            ),
+            color=discord.Color.green()
+        )
+
+        return embed
+    
     def get_random_image_url(self):
         """Select a random image URL."""
         from tracking import pokemon_urls
         return random.choice(pokemon_urls)
     
-    @discord.ui.button(label="Declare", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Start Declaration", style=discord.ButtonStyle.success)
     async def declare_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id == self.user_id:
-            logger.debug(f"'Declare' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
+            logger.debug(f"'Start Declaration' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
     
             await self.handler.send_declaration_modal(interaction)
 
-            await self.disable_all_buttons()
+            #await self.disable_all_buttons()
             await interaction.message.edit(view=self)
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
@@ -71,45 +85,30 @@ class HabitDeclarationModal(discord.ui.Modal):
         logger.debug("HabitDeclarationModal initialized with handler: %s", handler)
 
         # Add the components (text inputs)
+        # Add a description text input that summarizes the full declaration
         self.habit = discord.ui.TextInput(
             label="Habit",
-            placeholder="Describe the small, specific habit you're committing to",
+            placeholder="What specific habit will you do? (e.g., meditate for 5 minutes)",
             style=discord.TextStyle.short
         )
         self.add_item(self.habit)
         logger.debug("Added TextInput for habit.")
 
-        self.cue = discord.ui.TextInput(
-            label="Cue",
-            placeholder="What will trigger this habit? (e.g., time, place, preceding action)",
+        self.time_location = discord.ui.TextInput(
+            label="Time/Location",
+            placeholder="When and where will you perform this habit? (e.g., when I wake up, at home)",
             style=discord.TextStyle.short
         )
-        self.add_item(self.cue)
-        logger.debug("Added TextInput for cue.")
+        self.add_item(self.time_location)
+        logger.debug("Added TextInput for time/location.")
 
-        self.frequency = discord.ui.TextInput(
-            label="Frequency",
-            placeholder="How often will this habit occur? (e.g., Daily, Weekly)",
+        self.identity = discord.ui.TextInput(
+            label="Identity",
+            placeholder="What type of person will this habit help you become? (e.g., a mindful person)",
             style=discord.TextStyle.short
         )
-        self.add_item(self.frequency)
-        logger.debug("Added TextInput for frequency.")
-
-        self.intention = discord.ui.TextInput(
-            label="Implementation Intention",
-            placeholder="When [cue], I will [routine].",
-            style=discord.TextStyle.short
-        )
-        self.add_item(self.intention)
-        logger.debug("Added TextInput for intention.")
-
-        self.commitment = discord.ui.TextInput(
-            label="Commitment",
-            placeholder="Why this habit matters to you and how it aligns with your goals",
-            style=discord.TextStyle.long
-        )
-        self.add_item(self.commitment)
-        logger.debug("Added TextInput for commitment.")
+        self.add_item(self.identity)
+        logger.debug("Added TextInput for identity.")
 
     async def on_submit(self, interaction: discord.Interaction):
         logger.debug("HabitDeclarationModal submitted by user: %s (ID: %s)", interaction.user.name, interaction.user.id)
@@ -121,10 +120,8 @@ class HabitDeclarationModal(discord.ui.Modal):
             },
             'declaration': {
                 'habit': self.habit.value,
-                'cue': self.cue.value,
-                'frequency': self.frequency.value,
-                'intention': self.intention.value,
-                'commitment': self.commitment.value,
+                'time_location': self.time_location.value,
+                'identity': self.identity.value,
             },
         }
         logger.debug("Habit data collected: %s", habit_data)
