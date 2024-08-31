@@ -79,10 +79,11 @@ class DeclarationView(discord.ui.View):
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
 
 class HabitDeclarationModal(discord.ui.Modal):
-    def __init__(self, handler: DeclarationHandler):
+    def __init__(self, declaration_handler: DeclarationHandler, habit_id_given=None):
         super().__init__(title="Habit Declaration")
-        self.handler = handler
-        logger.debug("HabitDeclarationModal initialized with handler: %s", handler)
+        self.habit_id_given = habit_id_given
+        self.declaration_handler = declaration_handler
+        logger.debug("HabitDeclarationModal initialized with handler: %s", declaration_handler)
 
         # Add the components (text inputs)
         # Add a description text input that summarizes the full declaration
@@ -126,5 +127,5 @@ class HabitDeclarationModal(discord.ui.Modal):
         }
         logger.debug("Habit data collected: %s", habit_data)
 
-        await self.handler.handle_habit_submission(interaction, habit_data)
+        await self.declaration_handler.handle_habit_submission(interaction, habit_data, self.habit_id_given)
         logger.debug("Habit submission handled for user: %s", interaction.user.name)
