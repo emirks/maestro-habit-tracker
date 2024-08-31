@@ -27,10 +27,12 @@ HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
 DECLARATION_DATA_PATH = os.path.join(os.path.dirname(__file__), 'declaration/data/habit_declarations.json')
 
 guild = None
+decalration_handler = None
+tracking_handler = None
 
 @bot.event
 async def on_ready():
-    global guild
+    global guild, declaration_handler, tracking_handler
     logger.info(f'{bot.user.name} has connected to Discord!')
 
     # Initialize the guild
@@ -40,7 +42,12 @@ async def on_ready():
     else:
         logger.warning("Guild 'Molecular Momentum' not found.")
     
-    check_habits.start()  # Start the weekly habit check task
+    # Initialize handlers
+    declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
+    tracking_handler = TrackingHandler(guild, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
+
+    # Start the weekly habit check task
+    check_habits.start()  
     logger.debug("Started weekly habit check task.")
 
     try:
@@ -61,9 +68,7 @@ async def declare(interaction: discord.Interaction):
     logger.debug(f"Declare command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
 
     if guild:
-        handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
-
-        await handler.send_declaration_view(interaction)
+        await declaration_handler.send_declaration_view(interaction)
         logger.debug("HabitDeclarationModal sent to user.")
     else:
         logger.warning("Guild is not initialized. Cannot declare habit.")
@@ -77,11 +82,9 @@ async def check(interaction: discord.Interaction):
     # Send an initial response to the interaction
     await interaction.response.defer(ephemeral=True)
     
-    if guild:
-        handler = TrackingHandler(guild, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME, DECLARATION_DATA_PATH)
-        
+    if guild:        
         # Run the handler asynchronously to avoid blocking
-        await handler.send_habit_check_to_all_tracking_channels()
+        await tracking_handler.send_habit_check_to_all_tracking_channels()
         
         # Optionally, edit the deferred response to notify the user that the check is complete
         await interaction.followup.send("Habit check has been triggered for all tracking channels.", ephemeral=True)
@@ -99,14 +102,12 @@ async def check_habits():
     
     if current_day == 5:  # Saturday at 12:00 PM UTC
         logger.info("It's Saturday. Sending habit check.")
+        await tracking_handler.send_habit_check_to_all_tracking_channels()
 
 @check_habits.before_loop
 async def before_check_habits():
     await bot.wait_until_ready()
     logger.debug("Bot is ready, starting habit check loop.")
-
-
-
 
 # Run the bot
 logger.info("Running the bot.")
