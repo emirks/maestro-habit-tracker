@@ -208,11 +208,14 @@ class DetailedHabitView(discord.ui.View):
         self.user = user
         self.user_id = user.id
 
+        self.tracking_handler.db_handler.connect()
         self.habit_ids = tracking_handler.db_handler.get_user_habit_ids(self.user_id)
         self.habits = tracking_handler.db_handler.get_user_habits(self.user_id)
         self.embeds = self.create_embed_for_all_habits()
 
-        
+        # Create edit buttons for each habit
+        self.create_edit_buttons()
+        self.tracking_handler.db_handler.close()
 
     def create_embed_for_all_habits(self):
         embeds = []
@@ -221,7 +224,6 @@ class DetailedHabitView(discord.ui.View):
             current_streak = self.tracking_handler.db_handler.get_current_streak(habit_id)
             tracking_channel_id = habit_data['tracking_channel_id']
             tracking_channel_name = self.guild.get_channel(tracking_channel_id).name
-
 
             embed = self.create_embed(habit_data, current_streak, tracking_channel_name)
             embeds.append(embed)
@@ -248,35 +250,66 @@ class DetailedHabitView(discord.ui.View):
         embed.set_thumbnail(url=self.get_random_image_url())  # Random image
         return embed 
 
+    def create_edit_buttons(self):
+        """Create an edit button for each habit."""
+        for habit_id in self.habit_ids:
+            button = discord.ui.Button(
+                label="Edit Habit",
+                style=discord.ButtonStyle.secondary
+            )
+            button.callback = self.generate_edit_button_callback(habit_id)
+            self.add_item(button)
+
+    def generate_edit_button_callback(self, habit_id):
+        async def callback(interaction: discord.Interaction):
+            if interaction.user.id == self.user_id:
+                self.tracking_handler.db_handler.connect()
+                logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id}) for habit ID: {habit_id}")
+                
+                # Wait for the declaration modal to be submitted and handled
+                habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.tracking_handler.db_handler.get_habit_data(habit_id))
+                logger.debug(f"Habit data after modal submission: {habit_data}")
+                
+                # Update the habit check message with the new data
+                await self.update_habit_check_message(interaction, habit_data, habit_id)
+                self.tracking_handler.db_handler.close()
+            else:
+                await interaction.response.send_message("This button is not for you.", ephemeral=True)
+        return callback
+
+    async def update_habit_check_message(self, interaction, habit_data, habit_id):
+        logger.debug(f"Initializing the new view for updated habit with habit_id: {habit_id}")
+        
+        # Create a new view for the updated habit
+        new_view = discord.ui.View(timeout=None)
+        
+        # Add the "Edit Habit" button for this habit
+        edit_button = discord.ui.Button(
+            label="Edit Habit",
+            style=discord.ButtonStyle.secondary
+        )
+        edit_button.callback = self.generate_edit_button_callback(habit_id)
+        new_view.add_item(edit_button)
+
+        # Generate the new embed with updated habit data
+        self.tracking_handler.db_handler.connect()
+        updated_habit_data = self.tracking_handler.db_handler.get_habit_data(habit_id)
+        current_streak = self.tracking_handler.db_handler.get_current_streak(habit_id)
+        tracking_channel_name = self.guild.get_channel(updated_habit_data['tracking_channel_id']).name
+        new_embed = self.create_embed(updated_habit_data, current_streak, tracking_channel_name)
+        self.tracking_handler.db_handler.close()
+
+        # Send a new message with the updated embed and view
+        await interaction.followup.send(
+            embed=new_embed,
+            view=new_view,
+            ephemeral=True  # Ephemeral message so only the user can see it
+        )
+        
+        logger.debug(f"New message sent with updated habit information for habit_id: {habit_id}")
+    
     def get_random_image_url(self):
         """Select a random image URL."""
         from tracking import pokemon_urls, dragon_urls
         # Adding some variety to the images used, including from dragon_urls
         return random.choice(pokemon_urls)
-    
-    @discord.ui.button(label="Edit Habit", style=discord.ButtonStyle.secondary)
-    async def edit_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id == self.user_id:
-            logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
-            
-            # # Wait for the declaration modal to be submitted and handled
-            # habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.habit_data)
-            # logger.debug(f"Habit data after modal submission: {habit_data}")
-            
-            # await self.update_habit_check_message(interaction)            
-            
-        else:
-            await interaction.response.send_message("This button is not for you.", ephemeral=True)
-
-    
-    # async def update_habit_check_message(self, interaction):
-    #     logger.debug(f"Initializing the new view for updated habit")
-    #     new_view = DetailedHabitCheckView(self.tracking_handler, self.declaration_handler, self.user, self.habit_id)
-    #     logger.debug(f"Initializing DONE the new view for updated habit")
-
-    #     # Create the new embed as a list (even if it's a single embed)
-    #     new_embeds = [new_view.embed]
-    #     # Clear old embeds and then add the new one
-    #     await interaction.message.edit(embeds=[], view=None)  # Clear existing embeds and view
-    #     await interaction.message.edit(embeds=new_embeds, view=new_view)  # Add new embeds and view
-    #     logger.debug(f"New view and embeds added to the message.")

@@ -21,28 +21,51 @@ class DeclarationHandler:
     def init_tracking_handler(self, tracking_handler):
         self.tracking_handler = tracking_handler
 
-    async def send_detailed_habit_view(self, interaction: discord.Interaction, guild, tracking_handler, declaration_handler,):
+    async def send_detailed_habit_view(self, interaction: discord.Interaction, guild, tracking_handler, declaration_handler):
         from declaration.components import DetailedHabitView
 
+        # Initialize the view with the necessary parameters
         habit_view = DetailedHabitView(guild, tracking_handler, declaration_handler, interaction.user)
-        # Send the message with both embeds
+        
+        # Send the first message to acknowledge the interaction
         await interaction.response.send_message(
-            embeds=habit_view.embeds,  # Include both embeds
-            view=habit_view,
+            content=f"Getting habits for {interaction.user.mention}",
             ephemeral=True
         )
 
+        # Follow up with each habit embed and its corresponding button
+        for embed in habit_view.embeds:
+            habit_specific_view = discord.ui.View(timeout=None)
+            habit_id = habit_view.habit_ids[habit_view.embeds.index(embed)]
+            edit_button = discord.ui.Button(
+                label="Edit Habit",
+                style=discord.ButtonStyle.secondary
+            )
+            edit_button.callback = habit_view.generate_edit_button_callback(habit_id)
+            habit_specific_view.add_item(edit_button)
+
+            # Send each embed with its corresponding button as a follow-up message
+            await interaction.followup.send(
+                embed=embed,
+                view=habit_specific_view,
+                ephemeral=True
+            )
+
+
     async def send_declaration_view(self, interaction: discord.Interaction):
         from declaration.components import DeclarationView
-        
-        # Create the DeclarationView and its embed
-        declaration_view = DeclarationView(self, interaction.user.id)
+        habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
+        if interaction.channel.name == self.habit_declaration_channel:
+            # Create the DeclarationView and its embed
+            declaration_view = DeclarationView(self, interaction.user.id)
 
-        # Send the message with both embeds
-        await interaction.response.send_message(
-            embeds=[declaration_view.instructions_embed, declaration_view.full_form_embed],  # Include both embeds
-            view=declaration_view
-        )
+            # Send the message with both embeds
+            await interaction.response.send_message(
+                embeds=[declaration_view.instructions_embed, declaration_view.full_form_embed],  # Include both embeds
+                view=declaration_view
+            )
+        else:
+            await interaction.response.send_message(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
 
     async def send_habit_edit_modal(self, interaction: discord.Interaction, habit_data):
         from declaration.components import HabitEditModal
