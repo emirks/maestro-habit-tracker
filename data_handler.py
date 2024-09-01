@@ -242,24 +242,38 @@ class DatabaseHandler:
         return last_streak_record
 
     def _calculate_new_streak(self, completed, last_streak_record, week_key):
-        if last_streak_record and completed:
-            last_week_key, last_streak = last_streak_record
-            if last_week_key == week_key:
-                logging.debug(f"Same week, streak continues unchanged: new_streak={last_streak}")
-                return last_streak  # Same week, streak continues unchanged
-            elif last_week_key == self.get_previous_week_key(week_key):
-                new_streak = last_streak + 1  # Last week matches the expected previous week, streak continues
-                logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
-                return new_streak
+        if completed:
+            # If habit is completed and last streak record found
+            if last_streak_record:
+                last_week_key, last_streak = last_streak_record
+                
+                # If the last streak week is not passed, streak continues unchanged
+                if last_week_key == week_key:
+                    logging.debug(f"Same week, streak continues unchanged: new_streak={last_streak}")
+                    return last_streak  
+                
+                # Last week matches the expected previous week, streak continues
+                elif last_week_key == self.get_previous_week_key(week_key):
+                    new_streak = last_streak + 1  
+                    logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
+                    return new_streak
+                
+                # In any other case of completion, start a new streak as 1
+                else:
+                    logging.debug(f"Streak reset: new_streak=1")
+                    return 1  # Streak reset
+            
+            # If habit is completed but last streak record is not found
             else:
                 logging.debug(f"Streak reset: new_streak=1")
                 return 1  # Streak reset
-        elif completed:
-            logging.debug(f"No previous streak record found, starting new streak: new_streak=1")
-            return 1  # No previous record, start a new streak
+        
+        # If habit is not completed
         else:
             logging.debug(f"Not completed, resetting streak: new_streak=0")
             return 0
+        
+        
 
     def _insert_or_update_tracking(self, cursor, habit_id, week_key, completed, new_streak):
         cursor.execute('''
