@@ -34,6 +34,9 @@ class DeclarationHandler:
         from declaration.components import HabitDeclarationModal
         modal = HabitDeclarationModal(self, habit_id_given)
         await interaction.response.send_modal(modal)
+        
+        # Wait for the modal to be submitted and handle the data
+        return await modal.wait_for_submission()
 
     async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict, habit_id=None):
         # Add the user to the database if they do not exist
