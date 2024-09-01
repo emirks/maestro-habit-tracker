@@ -1,6 +1,6 @@
 import discord
 from tracking.channel_management import TrackingChannelManager
-from tracking import congrats_messages
+from tracking import congrats_messages, not_accomplished_messages
 from declaration.declaration_handler import DeclarationHandler
 from data_handler import DatabaseHandler
 import logging
@@ -20,9 +20,10 @@ class TrackingHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}")
 
-    def get_random_congrats_message(self, interaction):
+    def get_response_message(self, interaction, completed):
         user_mention = interaction.user.mention
-        random_message = random.choice(congrats_messages)
+        message_list = congrats_messages if completed else not_accomplished_messages
+        random_message = random.choice(message_list)
         return random_message.format(user_mention=user_mention)
     
     async def handle_check_submission(self, interaction: discord.Interaction, habit_id, week_key, completed: bool):
@@ -31,8 +32,8 @@ class TrackingHandler:
         self.db_handler.connect()
         self.db_handler.mark_habit_completed(habit_id, completed, week_key=week_key)
         self.db_handler.close()
-        response_message = self.get_random_congrats_message(interaction)
-        await interaction.response.send_message(response_message, ephemeral=True)
+        response_message = self.get_response_message(interaction, completed)
+        await interaction.response.send_message(response_message)
         logger.debug(f"Sent response to {interaction.user.name}: {response_message}")
 
 
