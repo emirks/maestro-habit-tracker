@@ -114,11 +114,41 @@ class DetailedHabitCheckView(discord.ui.View):
     @discord.ui.button(label="Edit Habit", style=discord.ButtonStyle.secondary)
     async def edit_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id == self.user_id:
-            logger.debug(f"'Release' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
-            await self.declaration_handler.send_declaration_modal(interaction, habit_id_given=self.habit_id)
+            logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
+            
+            # Wait for the declaration modal to be submitted and handled
+            habit_data = await self.declaration_handler.send_declaration_modal(interaction, habit_id_given=self.habit_id)
+            logger.debug(f"Habit data after modal submission: {habit_data}")
+            
             logger.debug(f"Initializing the new view for updated habit")
             new_view = DetailedHabitCheckView(self.tracking_handler, self.declaration_handler, self.user, self.habit_id)
+            
             logger.debug(f"Initializing DONE the new view for updated habit")
-            await interaction.message.edit(view=new_view)
+
+            # Log details of the existing embed(s)
+            for embed in interaction.message.embeds:
+                logger.debug("Existing Embed Title: %s", embed.title)
+                logger.debug("Existing Embed Description: %s", embed.description)
+                for field in embed.fields:
+                    logger.debug("Existing Embed Field - Name: %s, Value: %s, Inline: %s", field.name, field.value, field.inline)
+            
+            # Log interaction message content for debugging
+            logger.debug("INTERACTION MESSAGE content: %s", interaction.message.content)
+            
+            # Create the new embed as a list (even if it's a single embed)
+            new_embeds = [new_view.embed]
+
+            # Log details of the new embed
+            for embed in new_embeds:
+                logger.debug("New Embed Title: %s", embed.title)
+                logger.debug("New Embed Description: %s", embed.description)
+                for field in embed.fields:
+                    logger.debug("New Embed Field - Name: %s, Value: %s, Inline: %s", field.name, field.value, field.inline)
+
+            # Clear old embeds and then add the new one
+            await interaction.message.edit(embeds=[], view=None)  # Clear existing embeds and view
+            await interaction.message.edit(embeds=new_embeds, view=new_view)  # Add new embeds and view
+            
+            logger.debug(f"New view and embeds added to the message.")
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
