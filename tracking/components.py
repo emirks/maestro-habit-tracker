@@ -117,7 +117,7 @@ class DetailedHabitCheckView(discord.ui.View):
             logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
             
             # Wait for the declaration modal to be submitted and handled
-            habit_data = await self.declaration_handler.send_declaration_modal(interaction, habit_id_given=self.habit_id)
+            habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.habit_data)
             logger.debug(f"Habit data after modal submission: {habit_data}")
             
             logger.debug(f"Initializing the new view for updated habit")

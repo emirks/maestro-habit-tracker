@@ -41,9 +41,10 @@ async def on_ready():
     else:
         logger.warning("Guild 'Molecular Momentum' not found.")
     
-    # Initialize handlers
+    # Initialize handlers and connect both
     declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
+    declaration_handler.init_tracking_handler(tracking_handler)
 
     # Start the weekly habit check task
     check_habits.start()  

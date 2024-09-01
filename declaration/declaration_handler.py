@@ -18,6 +18,9 @@ class DeclarationHandler:
         self.db_handler = DatabaseHandler()
         logger.debug(f"DeclarationHandler initialized with channels: {habit_declaration_channel}, prefix: {habit_tracking_channels_prefix}")
 
+    def init_tracking_handler(self, tracking_handler):
+        self.tracking_handler = tracking_handler
+
     async def send_declaration_view(self, interaction: discord.Interaction):
         from declaration.components import DeclarationView
         
@@ -30,13 +33,19 @@ class DeclarationHandler:
             view=declaration_view
         )
 
-    async def send_declaration_modal(self, interaction: discord.Interaction, habit_id_given=None):
-        from declaration.components import HabitDeclarationModal
-        modal = HabitDeclarationModal(self, habit_id_given)
+    async def send_habit_edit_modal(self, interaction: discord.Interaction, habit_data):
+        from declaration.components import HabitEditModal
+        modal = HabitEditModal(self, habit_data)
         await interaction.response.send_modal(modal)
         
         # Wait for the modal to be submitted and handle the data
         return await modal.wait_for_submission()
+
+
+    async def send_declaration_modal(self, interaction: discord.Interaction):
+        from declaration.components import HabitDeclarationModal
+        modal = HabitDeclarationModal(self)
+        await interaction.response.send_modal(modal)
 
     async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict, habit_id=None):
         # Add the user to the database if they do not exist
@@ -73,7 +82,7 @@ class DeclarationHandler:
         if habit_declaration_channel:
             await habit_declaration_channel.send(
                 f"**Habit Declaration: {interaction.user.mention}**\n"
-                f"Habit: {declaration_data['habit']}\n"
+                f"Habit: {declaration_data['habit_name']}\n"
                 f"Time/Location: {declaration_data['time_location']}\n"
                 f"Identity: {declaration_data['identity']}\n"
             )

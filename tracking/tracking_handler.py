@@ -69,9 +69,6 @@ class TrackingHandler:
             if user:
                 try:
                     logger.debug(f"Sending habit check to user: {user.name} (ID: {user.id}) for habit: {habit_name}")
-                    # view = HabitCheckView(self, user_id, habit_id)  # Pass the handler (self) to the view
-                    # await tracking_channel.send(f"{user.mention}, have you completed your habit: **{habit_name}** this week?", view=view)
-                    # Create the view and embed
                     detailed_view = DetailedHabitCheckView(self, self.declaration_handler, user, habit_id)
                     
                     await tracking_channel.send(

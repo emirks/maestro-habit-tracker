@@ -122,7 +122,7 @@ class DatabaseHandler:
         try:
             # Extract data from the habit_data dictionary
             user_id = habit_data['metadata']['user_id']
-            habit_name = habit_data['declaration']['habit']
+            habit_name = habit_data['declaration']['habit_name']
             time_location = habit_data['declaration']['time_location']
             identity = habit_data['declaration']['identity']
 
