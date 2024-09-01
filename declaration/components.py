@@ -88,8 +88,8 @@ class HabitDeclarationModal(discord.ui.Modal):
         # Add the components (text inputs)
         # Add a description text input that summarizes the full declaration
         self.habit = discord.ui.TextInput(
-            label="Habit",
-            placeholder="What specific habit will you do? (e.g., meditate for 5 minutes)",
+            label="I will ``habit``",
+            placeholder="e.g., Meditate for 3 minutes, Read for 1 minutes",
             style=discord.TextStyle.short
         )
         self.add_item(self.habit)

@@ -108,7 +108,6 @@ class DetailedHabitCheckView(discord.ui.View):
             await self.tracking_handler.handle_check_submission(interaction, self.habit_id, self.week_key, completed=False)
             await self.disable_all_buttons()
             await interaction.message.edit(view=self)
-            await interaction.followup.send(f"That's okay, {interaction.user.mention}. Let's keep pushing forward! You got this! 💪", ephemeral=True)
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
 

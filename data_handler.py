@@ -207,7 +207,7 @@ class DatabaseHandler:
         
     def mark_habit_completed(self, habit_id, completed, current_week=True, week_key=None):
         try:
-            week_key = self._get_week_key(current_week, week_key)
+            week_key = self._get_week_key(current_week, week_key) if week_key else week_key
             logging.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
 
             with self.conn:

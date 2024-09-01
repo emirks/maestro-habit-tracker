@@ -96,8 +96,7 @@ async def check(interaction: discord.Interaction):
 @tasks.loop(hours=24)  # Runs every 24 hours
 async def check_habits():
     current_day = datetime.now(timezone.utc).weekday()
-    current_time = datetime.now(timezone.utc).time()
-    logger.debug(f"Current UTC day: {current_day}, time: {current_time}")
+    logger.debug(f"Current UTC day: {current_day}")
     
     if current_day == 5:  # Saturday at 12:00 PM UTC
         logger.info("It's Saturday. Sending habit check.")
