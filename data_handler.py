@@ -298,6 +298,78 @@ class DatabaseHandler:
     ###################
     ### GET METHODS ###
     ###################
+    def get_user_habits(self, user_id):
+        """
+        Retrieve all habits associated with a given user ID.
+
+        :param user_id: The ID of the user whose habits to retrieve.
+        :return: A list of dictionaries, each containing the habit data.
+        """
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                cursor.execute('''
+                    SELECT 
+                        h.id, 
+                        h.habit_name, 
+                        h.time_location, 
+                        h.identity, 
+                        h.tracking_channel_id
+                    FROM habits h
+                    WHERE h.user_id = ?
+                ''', (user_id,))
+                
+                habits = cursor.fetchall()
+                
+                if habits:
+                    habit_list = []
+                    for habit in habits:
+                        habit_data = {
+                            'habit_id': habit[0],
+                            'habit_name': habit[1],
+                            'time_location': habit[2],
+                            'identity': habit[3],
+                            'tracking_channel_id': habit[4]
+                        }
+                        habit_list.append(habit_data)
+                    
+                    return habit_list
+                else:
+                    logging.info(f"No habits found for user ID {user_id}.")
+                    return []
+        except sqlite3.Error as e:
+            logging.error(f"Error retrieving habits for user ID {user_id}: {e}")
+            raise
+    
+    def get_user_habit_ids(self, user_id):
+        """
+        Retrieve all habit IDs associated with a given user ID.
+
+        :param user_id: The ID of the user whose habit IDs to retrieve.
+        :return: A list of habit IDs.
+        """
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                cursor.execute('''
+                    SELECT id 
+                    FROM habits
+                    WHERE user_id = ?
+                ''', (user_id,))
+                
+                habit_ids = cursor.fetchall()
+                
+                # Extract habit IDs from the query result
+                habit_id_list = [habit_id[0] for habit_id in habit_ids] if habit_ids else []
+                
+                if habit_id_list:
+                    logging.info(f"Retrieved habit IDs for user ID {user_id}: {habit_id_list}")
+                else:
+                    logging.info(f"No habits found for user ID {user_id}.")
+                
+                return habit_id_list
+        except sqlite3.Error as e:
+            logging.error(f"Error retrieving habit IDs for user ID {user_id}: {e}")
+            raise
+
     def get_habit_data(self, habit_id):
         """
         Retrieve habit data from the database based on the habit ID.

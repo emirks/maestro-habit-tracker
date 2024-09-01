@@ -26,7 +26,7 @@ HABIT_TRACKING_CHANNELS_PREFIX = 'habit-tracking'
 HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
 
 guild = None
-decalration_handler = None
+declaration_handler = None
 tracking_handler = None
 
 @bot.event
@@ -73,6 +73,19 @@ async def declare(interaction: discord.Interaction):
     else:
         logger.warning("Guild is not initialized. Cannot declare habit.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
+
+# Command to show all habits
+@bot.tree.command(name="habits", description="See all habits")
+async def habits(interaction: discord.Interaction):
+    logger.debug(f"habits command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+
+    if guild:
+        await declaration_handler.send_detailed_habit_view(interaction, guild, tracking_handler, declaration_handler)
+        logger.debug("DetailedHabitView sent to user.")
+    else:
+        logger.warning("Guild is not initialized. Cannot see habits.")
+        await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
+
 
 # Command to manually trigger the habit check
 @bot.tree.command(name="check", description="Ask users if they completed their habits")

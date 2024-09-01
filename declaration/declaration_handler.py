@@ -21,6 +21,17 @@ class DeclarationHandler:
     def init_tracking_handler(self, tracking_handler):
         self.tracking_handler = tracking_handler
 
+    async def send_detailed_habit_view(self, interaction: discord.Interaction, guild, tracking_handler, declaration_handler,):
+        from declaration.components import DetailedHabitView
+
+        habit_view = DetailedHabitView(guild, tracking_handler, declaration_handler, interaction.user)
+        # Send the message with both embeds
+        await interaction.response.send_message(
+            embeds=habit_view.embeds,  # Include both embeds
+            view=habit_view,
+            ephemeral=True
+        )
+
     async def send_declaration_view(self, interaction: discord.Interaction):
         from declaration.components import DeclarationView
         
@@ -40,7 +51,6 @@ class DeclarationHandler:
         
         # Wait for the modal to be submitted and handle the data
         return await modal.wait_for_submission()
-
 
     async def send_declaration_modal(self, interaction: discord.Interaction):
         from declaration.components import HabitDeclarationModal

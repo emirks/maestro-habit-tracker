@@ -1,6 +1,7 @@
 import discord
 from datetime import datetime
 from declaration.declaration_handler import DeclarationHandler  # Import the handler
+from tracking.tracking_handler import TrackingHandler
 import logging
 import random
 import asyncio
@@ -196,3 +197,86 @@ class HabitEditModal(discord.ui.Modal):
     async def wait_for_submission(self):
         await self.submission_event.wait()
         return self.updated_habit_data
+    
+
+class DetailedHabitView(discord.ui.View):
+    def __init__(self, guild, tracking_handler: TrackingHandler, declaration_handler: DeclarationHandler, user):
+        super().__init__(timeout=None)
+        self.guild = guild
+        self.tracking_handler = tracking_handler
+        self.declaration_handler = declaration_handler
+        self.user = user
+        self.user_id = user.id
+
+        self.habit_ids = tracking_handler.db_handler.get_user_habit_ids(self.user_id)
+        self.habits = tracking_handler.db_handler.get_user_habits(self.user_id)
+        self.embeds = self.create_embed_for_all_habits()
+
+        
+
+    def create_embed_for_all_habits(self):
+        embeds = []
+        for habit_id in self.habit_ids:
+            habit_data = self.tracking_handler.db_handler.get_habit_data(habit_id)
+            current_streak = self.tracking_handler.db_handler.get_current_streak(habit_id)
+            tracking_channel_id = habit_data['tracking_channel_id']
+            tracking_channel_name = self.guild.get_channel(tracking_channel_id).name
+
+
+            embed = self.create_embed(habit_data, current_streak, tracking_channel_name)
+            embeds.append(embed)
+        
+        return embeds
+    
+    def create_embed(self, habit_data, current_streak, tracking_channel_name):
+        """Create and return the embed for the Habit Data."""
+        embed = discord.Embed(
+            title=f"{habit_data['habit_name']}",
+            description=f"Habit Data",
+            color=discord.Color.random()  # Use a random color for the embed
+        )
+        
+        # Add habit details
+        embed.add_field(name="Habit", value=habit_data['habit_name'], inline=True)
+        embed.add_field(name="Streak", value=f"🔥 {current_streak} weeks", inline=True)
+        embed.add_field(name="Time / Location", value=habit_data['time_location'], inline=False)
+        
+        # Motivation and Identity Reminder
+        embed.add_field(name="Don't Forget Your Purpose!", value=f"You're {habit_data['habit_name'].lower()} to become {habit_data['identity'].lower()}.", inline=False)
+        embed.add_field(name="Attached tracking channel", value=f"You're {tracking_channel_name.lower()}", inline=False)
+        
+        embed.set_thumbnail(url=self.get_random_image_url())  # Random image
+        return embed 
+
+    def get_random_image_url(self):
+        """Select a random image URL."""
+        from tracking import pokemon_urls, dragon_urls
+        # Adding some variety to the images used, including from dragon_urls
+        return random.choice(pokemon_urls)
+    
+    @discord.ui.button(label="Edit Habit", style=discord.ButtonStyle.secondary)
+    async def edit_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id == self.user_id:
+            logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id})")
+            
+            # # Wait for the declaration modal to be submitted and handled
+            # habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.habit_data)
+            # logger.debug(f"Habit data after modal submission: {habit_data}")
+            
+            # await self.update_habit_check_message(interaction)            
+            
+        else:
+            await interaction.response.send_message("This button is not for you.", ephemeral=True)
+
+    
+    # async def update_habit_check_message(self, interaction):
+    #     logger.debug(f"Initializing the new view for updated habit")
+    #     new_view = DetailedHabitCheckView(self.tracking_handler, self.declaration_handler, self.user, self.habit_id)
+    #     logger.debug(f"Initializing DONE the new view for updated habit")
+
+    #     # Create the new embed as a list (even if it's a single embed)
+    #     new_embeds = [new_view.embed]
+    #     # Clear old embeds and then add the new one
+    #     await interaction.message.edit(embeds=[], view=None)  # Clear existing embeds and view
+    #     await interaction.message.edit(embeds=new_embeds, view=new_view)  # Add new embeds and view
+    #     logger.debug(f"New view and embeds added to the message.")
