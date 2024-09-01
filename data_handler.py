@@ -118,26 +118,13 @@ class DatabaseHandler:
             raise
 
 
-    def add_habit_with_data(self, habit_data, tracking_channel_id, habit_id=None):
+    def add_habit_with_data(self, habit_data, tracking_channel_id):
         try:
             # Extract data from the habit_data dictionary
             user_id = habit_data['metadata']['user_id']
             habit_name = habit_data['declaration']['habit_name']
             time_location = habit_data['declaration']['time_location']
             identity = habit_data['declaration']['identity']
-
-            # If habit id is given, update the data
-            if habit_id:
-                 with self.conn:
-                    self.conn.execute('''
-                        UPDATE habits
-                        SET user_id = ?, tracking_channel_id = ?, habit_name = ?, time_location = ?, identity = ?
-                        WHERE id = ?
-                    ''', (user_id, tracking_channel_id, habit_name, time_location, identity, habit_id))
-                
-                    logging.info(f"Habit ID {habit_id} updated successfully with new data.")
-                    
-                    return
 
             # Insert the habit data into the habits table
             with self.conn:
@@ -151,6 +138,29 @@ class DatabaseHandler:
             logging.error(f"Error adding habit for user {user_id}: {e}")
             raise
 
+    def update_habit_with_data(self, habit_data, tracking_channel_id, habit_id):
+        try:
+            # Extract data from the habit_data dictionary
+            user_id = habit_data['metadata']['user_id']
+            habit_name = habit_data['declaration']['habit_name']
+            time_location = habit_data['declaration']['time_location']
+            identity = habit_data['declaration']['identity']
+
+            # If habit id is given, update the data
+            
+            with self.conn:
+                self.conn.execute('''
+                    UPDATE habits
+                    SET user_id = ?, tracking_channel_id = ?, habit_name = ?, time_location = ?, identity = ?
+                    WHERE id = ?
+                ''', (user_id, tracking_channel_id, habit_name, time_location, identity, habit_id))
+            
+                logging.info(f"Habit ID {habit_id} updated successfully with new data.")
+            
+            
+        except sqlite3.Error as e:
+            logging.error(f"Error adding habit for user {user_id}: {e}")
+            raise
 
     def add_user_to_tracking_channel(self, user_id, channel_id):
         try:
