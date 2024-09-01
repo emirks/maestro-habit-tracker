@@ -3,6 +3,7 @@ from datetime import datetime
 from declaration.declaration_handler import DeclarationHandler  # Import the handler
 import logging
 import random
+import asyncio
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -83,6 +84,7 @@ class HabitDeclarationModal(discord.ui.Modal):
         super().__init__(title="Habit Declaration")
         self.habit_id_given = habit_id_given
         self.declaration_handler = declaration_handler
+        self.submission_event = asyncio.Event()
         logger.debug("HabitDeclarationModal initialized with handler: %s", declaration_handler)
 
         # Add the components (text inputs)
@@ -114,7 +116,7 @@ class HabitDeclarationModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         logger.debug("HabitDeclarationModal submitted by user: %s (ID: %s)", interaction.user.name, interaction.user.id)
         
-        habit_data = {
+        self.habit_data = {
             'metadata': {
                 'user_id': str(interaction.user.id),
                 'timestamp': datetime.now().isoformat(),
@@ -125,7 +127,12 @@ class HabitDeclarationModal(discord.ui.Modal):
                 'identity': self.identity.value,
             },
         }
-        logger.debug("Habit data collected: %s", habit_data)
+        logger.debug("Habit data collected: %s", self.habit_data)
 
-        await self.declaration_handler.handle_habit_submission(interaction, habit_data, self.habit_id_given)
+        await self.declaration_handler.handle_habit_submission(interaction, self.habit_data, self.habit_id_given)
+        self.submission_event.set()
         logger.debug("Habit submission handled for user: %s", interaction.user.name)
+
+    async def wait_for_submission(self):
+        await self.submission_event.wait()
+        return self.habit_data
