@@ -60,7 +60,7 @@ class DeclarationHandler:
         if habit_id:
             self.db_handler.add_habit_with_data(habit_data, habit_tracking_channel.id, habit_id)
             self.db_handler.close()
-            await interaction.response.send_message(f"Your habit has been updated")
+            await interaction.response.send_message(f"Your habit has been updated", ephemeral=True)
             return
 
 

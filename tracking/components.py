@@ -120,35 +120,20 @@ class DetailedHabitCheckView(discord.ui.View):
             habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.habit_data)
             logger.debug(f"Habit data after modal submission: {habit_data}")
             
-            logger.debug(f"Initializing the new view for updated habit")
-            new_view = DetailedHabitCheckView(self.tracking_handler, self.declaration_handler, self.user, self.habit_id)
+            await self.update_habit_check_message(interaction)            
             
-            logger.debug(f"Initializing DONE the new view for updated habit")
-
-            # Log details of the existing embed(s)
-            for embed in interaction.message.embeds:
-                logger.debug("Existing Embed Title: %s", embed.title)
-                logger.debug("Existing Embed Description: %s", embed.description)
-                for field in embed.fields:
-                    logger.debug("Existing Embed Field - Name: %s, Value: %s, Inline: %s", field.name, field.value, field.inline)
-            
-            # Log interaction message content for debugging
-            logger.debug("INTERACTION MESSAGE content: %s", interaction.message.content)
-            
-            # Create the new embed as a list (even if it's a single embed)
-            new_embeds = [new_view.embed]
-
-            # Log details of the new embed
-            for embed in new_embeds:
-                logger.debug("New Embed Title: %s", embed.title)
-                logger.debug("New Embed Description: %s", embed.description)
-                for field in embed.fields:
-                    logger.debug("New Embed Field - Name: %s, Value: %s, Inline: %s", field.name, field.value, field.inline)
-
-            # Clear old embeds and then add the new one
-            await interaction.message.edit(embeds=[], view=None)  # Clear existing embeds and view
-            await interaction.message.edit(embeds=new_embeds, view=new_view)  # Add new embeds and view
-            
-            logger.debug(f"New view and embeds added to the message.")
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
+
+    
+    async def update_habit_check_message(self, interaction):
+        logger.debug(f"Initializing the new view for updated habit")
+        new_view = DetailedHabitCheckView(self.tracking_handler, self.declaration_handler, self.user, self.habit_id)
+        logger.debug(f"Initializing DONE the new view for updated habit")
+
+        # Create the new embed as a list (even if it's a single embed)
+        new_embeds = [new_view.embed]
+        # Clear old embeds and then add the new one
+        await interaction.message.edit(embeds=[], view=None)  # Clear existing embeds and view
+        await interaction.message.edit(embeds=new_embeds, view=new_view)  # Add new embeds and view
+        logger.debug(f"New view and embeds added to the message.")
