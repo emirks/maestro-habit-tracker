@@ -45,6 +45,7 @@ class TrackingHandler:
 
         self.db_handler.connect()
         for channel in channels:
+            self.db_handler.connect()
             await self.send_habit_check_to_tracking_channel(channel)
         self.db_handler.close()
 
@@ -81,11 +82,4 @@ class TrackingHandler:
             else:
                 logging.info(f"User not found with id: {user_id}")
             
-
-    def read_habit_data_for_channel(self, tracking_channel_id):
-        logger.debug(f"Reading habit data for channel ID: {tracking_channel_id}")
-        with open(self.declaration_data_path, 'r') as file:
-            data = json.load(file)
-        logger.debug(f"Data read for channel ID {tracking_channel_id}")
-
-        return data[tracking_channel_id]
+        return None
