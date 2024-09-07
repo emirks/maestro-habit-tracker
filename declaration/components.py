@@ -199,7 +199,7 @@ class HabitEditModal(discord.ui.Modal):
         return self.updated_habit_data
     
 
-class DetailedHabitView(discord.ui.View):
+class DetailedHabitCardView(discord.ui.View):
     def __init__(self, guild, tracking_handler: TrackingHandler, declaration_handler: DeclarationHandler, user):
         super().__init__(timeout=None)
         self.guild = guild
@@ -245,7 +245,7 @@ class DetailedHabitView(discord.ui.View):
         
         # Motivation and Identity Reminder
         embed.add_field(name="Don't Forget Your Purpose!", value=f"You're {habit_data['habit_name'].lower()} to become {habit_data['identity'].lower()}.", inline=False)
-        embed.add_field(name="Attached tracking channel", value=f"You're {tracking_channel_name.lower()}", inline=False)
+        embed.add_field(name="Attached tracking channel", value=f"{tracking_channel_name.lower()}", inline=False)
         
         embed.set_thumbnail(url=self.get_random_image_url())  # Random image
         return embed 
@@ -311,5 +311,51 @@ class DetailedHabitView(discord.ui.View):
     def get_random_image_url(self):
         """Select a random image URL."""
         from tracking import pokemon_urls, dragon_urls
+        # Adding some variety to the images used, including from dragon_urls
+        return random.choice(pokemon_urls)
+    
+
+
+class HabitCardView(discord.ui.View):
+    def __init__(self, tracking_handler: TrackingHandler, declaration_handler: DeclarationHandler, user, habit_data, tracking_channel_name):
+        super().__init__(timeout=None)
+        self.declaration_handler = declaration_handler
+        self.tracking_handler = tracking_handler
+        self.habit_data = habit_data['declaration']
+        self.tracking_channel_name = tracking_channel_name
+        self.user = user
+
+        self.embed = self.create_embed()  # Create the embed during initialization
+        logger.debug(f"HabitCardView initialized")
+
+    async def disable_all_buttons(self):
+        """Disable all buttons in the view."""
+        for item in self.children:
+            item.disabled = True
+
+    def create_embed(self):
+        """Create and return the embed for the Habit Check."""
+        embed = discord.Embed(
+            title=f"Declaration Overview",
+            description=f"{self.user.mention}",
+            color=discord.Color.random()  # Use a random color for the embed
+        )
+        
+        embed.add_field(name="Full Form", value=f"I will {self.habit_data['habit_name'].lower()}, {self.habit_data['time_location'].lower()} so that I can become {self.habit_data['identity'].lower()}", inline=False)
+
+        # Add habit details
+        embed.add_field(name="Habit", value=self.habit_data['habit_name'], inline=True)
+        embed.add_field(name="Time / Location", value=self.habit_data['time_location'], inline=False)
+        
+        # Motivation and Identity Reminder
+        embed.add_field(name="Don't Forget Your Purpose!", value=f"You're doing {self.habit_data['habit_name'].lower()} to become {self.habit_data['identity'].lower()}.", inline=False)
+        embed.add_field(name="Attached tracking channel", value=f"{self.tracking_channel_name.lower()}", inline=False)
+        
+        embed.set_thumbnail(url=self.get_random_image_url())  # Random image
+        return embed
+    
+    def get_random_image_url(self):
+        """Select a random image URL."""
+        from tracking import pokemon_urls
         # Adding some variety to the images used, including from dragon_urls
         return random.choice(pokemon_urls)
