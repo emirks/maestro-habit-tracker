@@ -5,6 +5,7 @@ from tracking.channel_management import TrackingChannelManager
 import logging
 from data_handler import DatabaseHandler
 
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -22,10 +23,10 @@ class DeclarationHandler:
         self.tracking_handler = tracking_handler
 
     async def send_detailed_habit_view(self, interaction: discord.Interaction, guild, tracking_handler, declaration_handler):
-        from declaration.components import DetailedHabitView
+        from declaration.components import DetailedHabitCardView
 
         # Initialize the view with the necessary parameters
-        habit_view = DetailedHabitView(guild, tracking_handler, declaration_handler, interaction.user)
+        habit_view = DetailedHabitCardView(guild, tracking_handler, declaration_handler, interaction.user)
         
         # Send the first message to acknowledge the interaction
         await interaction.response.send_message(
@@ -62,7 +63,8 @@ class DeclarationHandler:
             # Send the message with both embeds
             await interaction.response.send_message(
                 embeds=[declaration_view.instructions_embed, declaration_view.full_form_embed],  # Include both embeds
-                view=declaration_view
+                view=declaration_view,
+                ephemeral=True
             )
         else:
             await interaction.response.send_message(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
@@ -111,15 +113,14 @@ class DeclarationHandler:
         declaration_data = habit_data['declaration']
         logger.debug(f"Declaration data: {declaration_data}")
 
-        # Send declaration message to channel
-        if habit_declaration_channel:
-            await habit_declaration_channel.send(
-                f"**Habit Declaration: {interaction.user.mention}**\n"
-                f"Habit: {declaration_data['habit_name']}\n"
-                f"Time/Location: {declaration_data['time_location']}\n"
-                f"Identity: {declaration_data['identity']}\n"
-            )
-            logger.debug(f"Habit declaration message sent to channel: {habit_declaration_channel.name}")
+        from declaration.components import HabitCardView
+        habit_card_view = HabitCardView(self.tracking_handler, declaration_handler=self, user=interaction.user, habit_data=habit_data, tracking_channel_name=habit_tracking_channel.name)
+
+        # Send the message with both embeds
+        await interaction.response.send_message(
+            embed=habit_card_view.embed,  # Include both embeds
+            view=habit_card_view
+        )
         
         # Add the user to the habit-tracking channel
         if habit_tracking_channel:
