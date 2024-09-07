@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands, tasks
+from discord import app_commands
+
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timezone
@@ -87,8 +89,15 @@ async def habits(interaction: discord.Interaction):
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
 
-# Command to manually trigger the habit check
+# Check if the user has administrator permissions
+def is_admin():
+    async def predicate(interaction: discord.Interaction) -> bool:
+        return interaction.user.guild_permissions.administrator
+    return app_commands.check(predicate)
+
+# Command to manually trigger the habit check, restricted to admins
 @bot.tree.command(name="check", description="Ask users if they completed their habits")
+@is_admin()
 async def check(interaction: discord.Interaction):
     logger.debug(f"Check command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
     
