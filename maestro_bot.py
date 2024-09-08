@@ -9,6 +9,7 @@ from declaration.declaration_handler import DeclarationHandler
 from tracking.tracking_handler import TrackingHandler
 import logging
 import webserver
+import drive
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -16,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
-TOKEN = os.environ['DISCORD_BOT_TOKEN']
+TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -53,6 +55,10 @@ async def on_ready():
     check_habits.start()  
     logger.debug("Started weekly habit check task.")
 
+    # Start the DB upload task
+    upload_db_to_drive.start()
+    logger.debug("Started DB upload task.")
+    
     try:
         await bot.tree.sync()  # Synchronize the slash commands with Discord
         logger.debug("Slash commands synchronized with Discord.")
@@ -136,6 +142,21 @@ async def check_habits():
 async def before_check_habits():
     await bot.wait_until_ready()
     logger.debug("Bot is ready, starting habit check loop.")
+
+# Add the task to upload the file every 10 minutes
+@tasks.loop(minutes=10)  # Runs every 10 minutes
+async def upload_db_to_drive():
+    try:
+        # Assuming drive.upload_file is already implemented and works
+        drive.upload_file('discord_bot.db', 'discord_bot', DRIVE_FOLDER_ID)
+        logger.info("Successfully uploaded discord_bot.db to Google Drive.")
+    except Exception as e:
+        logger.error(f"Failed to upload discord_bot.db to Google Drive: {e}")
+
+@upload_db_to_drive.before_loop
+async def before_upload_db_to_drive():
+    await bot.wait_until_ready()
+    logger.debug("Bot is ready, starting DB upload task loop.")
 
 
 webserver.keep_alive()
