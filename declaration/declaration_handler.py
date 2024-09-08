@@ -61,11 +61,12 @@ class DeclarationHandler:
             declaration_view = DeclarationView(self, interaction.user.id)
 
             # Send the message with both embeds
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embeds=[declaration_view.instructions_embed, declaration_view.full_form_embed],  # Include both embeds
                 view=declaration_view,
                 ephemeral=True
             )
+            logger.info(f"Declaration View Sent.")
         else:
             await interaction.response.send_message(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
 
