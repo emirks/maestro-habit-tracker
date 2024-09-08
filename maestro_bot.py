@@ -82,6 +82,7 @@ async def on_ready():
 # Command to declare a habit
 @bot.tree.command(name="declare", description="Declare a new habit")
 async def declare(interaction: discord.Interaction):
+    await interaction.response.defer()  # Defers the response
     logger.debug(f"Declare command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
 
     if guild:
