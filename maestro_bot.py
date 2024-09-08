@@ -1,35 +1,59 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-
-from dotenv import load_dotenv
-import os
 from datetime import datetime, timedelta, timezone
 import logging
 import webserver
 import drive
+import os
+
+# Empty cached env variables
+os.environ.pop('DISCORD_BOT_TOKEN', None)
+os.environ.pop('DISCORD_BOT_DB_NAME', None)
+os.environ.pop('DRIVE_FOLDER_ID', None)
+os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
+os.environ.pop('GUILD_NAME', None)
+os.environ.pop('ENV', None)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
-load_dotenv()
-TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
+# Check if running in development or production mode
+environment = os.getenv('ENV', 'development')
+logging.info('\n')
+logging.info('='*128)
+logging.info(f"MODE: {environment}")
+logging.info('='*128)
+logging.info('\n')
+
+from dotenv import load_dotenv
+if environment == 'production':
+    logging.info("Loading '.env'")
+    dotenv_loaded = load_dotenv('.env')  # Load production environment variables
+else:
+    logging.info("Loading '.env.dev'")
+    dotenv_loaded = load_dotenv('.env.dev')  # Load development environment variables
+logging.info(f".env file loaded: {dotenv_loaded}")
+
+DISCORD_BOT_TOKEN = os.environ['DISCORD_BOT_TOKEN']
+DRIVE_FOLDER_ID = os.environ['DRIVE_FOLDER_ID']
+DISCORD_BOT_DB_NAME = os.environ['DISCORD_BOT_DB_NAME']
+DISCORD_BOT_DB_PREFIX = DISCORD_BOT_DB_NAME.split('.')[0]
+GUILD_NAME = os.environ['GUILD_NAME']
 
 # Check if the 'discord_bot.db' file exists in the current directory
-if not os.path.exists('discord_bot.db'):
-    logger.info("'discord_bot.db' does not exist. Downloading the latest version from Google Drive...")
-    drive.download_latest_file(DRIVE_FOLDER_ID, 'discord_bot')
+if not os.path.exists(DISCORD_BOT_DB_NAME):
+    logging.info(f"'{DISCORD_BOT_DB_NAME}' does not exist. Downloading the latest version from Google Drive...")
+    drive.download_latest_file(DRIVE_FOLDER_ID, DISCORD_BOT_DB_PREFIX, DISCORD_BOT_DB_NAME)
 else:
-    logger.info("'discord_bot.db' already exists. Skipping download.")
+    logging.info(f"'{DISCORD_BOT_DB_NAME}' already exists. Skipping download.")
 
 from declaration.declaration_handler import DeclarationHandler
 from tracking.tracking_handler import TrackingHandler
 
 intents = discord.Intents.default()
-intents.message_content = True
+intents.members = True  # Enable the 'members' privileged intent
+intents.message_content = True  # Enable message content intent if needed
 intents.guilds = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -45,14 +69,14 @@ tracking_handler = None
 @bot.event
 async def on_ready():
     global guild, declaration_handler, tracking_handler
-    logger.info(f'{bot.user.name} has connected to Discord!')
+    logging.info(f'{bot.user.name} has connected to Discord!')
 
     # Initialize the guild
-    guild = discord.utils.get(bot.guilds, name="Molecular Momentum")
+    guild = discord.utils.get(bot.guilds, name=GUILD_NAME)
     if guild:
-        logger.debug(f"Guild found: {guild.name}")
+        logging.debug(f"Guild found: {guild.name}")
     else:
-        logger.warning("Guild 'Molecular Momentum' not found.")
+        logging.warning(f"Guild '{GUILD_NAME}' not found.")
     
     # Initialize handlers and connect both
     declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
@@ -61,47 +85,47 @@ async def on_ready():
 
     # Start the weekly habit check task
     check_habits.start()  
-    logger.debug("Started weekly habit check task.")
+    logging.debug("Started weekly habit check task.")
 
     # Start the DB upload task
     upload_db_to_drive.start()
-    logger.debug("Started DB upload task.")
+    logging.debug("Started DB upload task.")
     
     try:
         await bot.tree.sync()  # Synchronize the slash commands with Discord
-        logger.debug("Slash commands synchronized with Discord.")
+        logging.debug("Slash commands synchronized with Discord.")
     except Exception as e:
-        logger.error(f"Failed to sync commands: {e}")
+        logging.error(f"Failed to sync commands: {e}")
     
     # Print out all synced commands
-    logger.info("Commands synced:")
+    logging.info("Commands synced:")
     for command in bot.tree.get_commands():
-        logger.info(f"- {command.name}")
-    logger.info("Sync complete.")
+        logging.info(f"- {command.name}")
+    logging.info("Sync complete.")
 
 # Command to declare a habit
 @bot.tree.command(name="declare", description="Declare a new habit")
 async def declare(interaction: discord.Interaction):
     await interaction.response.defer()  # Defers the response
-    logger.debug(f"Declare command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+    logging.debug(f"Declare command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
 
     if guild:
         await declaration_handler.send_declaration_view(interaction)
-        logger.debug("HabitDeclarationModal sent to user.")
+        logging.debug("HabitDeclarationModal sent to user.")
     else:
-        logger.warning("Guild is not initialized. Cannot declare habit.")
+        logging.warning("Guild is not initialized. Cannot declare habit.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
 # Command to show all habits
 @bot.tree.command(name="habits", description="See all habits")
 async def habits(interaction: discord.Interaction):
-    logger.debug(f"habits command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+    logging.debug(f"habits command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
 
     if guild:
         await declaration_handler.send_detailed_habit_view(interaction, guild, tracking_handler, declaration_handler)
-        logger.debug("DetailedHabitView sent to user.")
+        logging.debug("DetailedHabitView sent to user.")
     else:
-        logger.warning("Guild is not initialized. Cannot see habits.")
+        logging.warning("Guild is not initialized. Cannot see habits.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
 
@@ -115,7 +139,7 @@ def is_admin():
 @bot.tree.command(name="check", description="Ask users if they completed their habits")
 @is_admin()
 async def check(interaction: discord.Interaction):
-    logger.debug(f"Check command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
+    logging.debug(f"Check command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
     
     # Send an initial response to the interaction
     await interaction.response.defer(ephemeral=True)
@@ -127,7 +151,7 @@ async def check(interaction: discord.Interaction):
         # Optionally, edit the deferred response to notify the user that the check is complete
         await interaction.followup.send("Habit check has been triggered for all tracking channels.", ephemeral=True)
     else:
-        logger.warning("Guild is not initialized. Cannot track habit.")
+        logging.warning("Guild is not initialized. Cannot track habit.")
         await interaction.followup.send("Guild not found. Please try again later.", ephemeral=True)
 
 
@@ -141,34 +165,34 @@ async def check_habits():
     current_day = current_time.weekday()
     current_hour = current_time.hour
 
-    logger.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}")
+    logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}")
 
     if current_day == 5 and current_hour == 12:  # Saturday at 12:xx PM UTC+3
-        logger.info("It's Saturday between 12:00 and 12:59 (UTC+3). Sending habit check.")
+        logging.info("It's Saturday between 12:00 and 12:59 (UTC+3). Sending habit check.")
         await tracking_handler.send_habit_check_to_all_tracking_channels()
 
 @check_habits.before_loop
 async def before_check_habits():
     await bot.wait_until_ready()
-    logger.debug("Bot is ready, starting habit check loop.")
+    logging.debug("Bot is ready, starting habit check loop.")
 
 # Add the task to upload the file every 10 minutes
 @tasks.loop(minutes=10)  # Runs every 10 minutes
 async def upload_db_to_drive():
     try:
         # Assuming drive.upload_file is already implemented and works
-        drive.upload_file('discord_bot.db', DRIVE_FOLDER_ID)
-        logger.info("Successfully uploaded discord_bot.db to Google Drive.")
+        drive.upload_file(DISCORD_BOT_DB_NAME, DRIVE_FOLDER_ID, DISCORD_BOT_DB_PREFIX)
+        logging.info("Successfully uploaded discord_bot.db to Google Drive.")
     except Exception as e:
-        logger.error(f"Failed to upload discord_bot.db to Google Drive: {e}")
+        logging.error(f"Failed to upload discord_bot.db to Google Drive: {e}")
 
 @upload_db_to_drive.before_loop
 async def before_upload_db_to_drive():
     await bot.wait_until_ready()
-    logger.debug("Bot is ready, starting DB upload task loop.")
+    logging.debug("Bot is ready, starting DB upload task loop.")
 
 
 webserver.keep_alive()
 # Run the bot
-logger.info("Running the bot.")
-bot.run(TOKEN)
+logging.info("Running the bot.")
+bot.run(DISCORD_BOT_TOKEN)

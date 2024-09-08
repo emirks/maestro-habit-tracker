@@ -1,9 +1,6 @@
 import os
-import pickle
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
 import io
 import re
@@ -21,7 +18,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 def authenticate():
     """Authenticate using either a Service Account or OAuth."""
     creds = None
-    service_account_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+    service_account_json = os.environ['GOOGLE_SERVICE_ACCOUNT_JSON']
 
     
     # Save the service account credentials to a temporary file
@@ -42,18 +39,18 @@ def authenticate():
     return creds
 
 
-def generate_timestamped_name():
+def generate_timestamped_name(base_name):
     """Generates a file name in the format discord_bot_timestamp.db"""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    return f"discord_bot_{timestamp}.db"
+    return f"{base_name}_{timestamp}.db"
 
-def upload_file(file_path, folder_id):
+def upload_file(file_path, folder_id, base_name):
     """Uploads a file to a specific folder in Google Drive with a timestamped name."""
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
 
     # Generate a timestamped name for the file
-    new_file_name = generate_timestamped_name()
+    new_file_name = generate_timestamped_name(base_name)
 
     # Prepare the file metadata and media for upload
     file_metadata = {
@@ -78,7 +75,7 @@ def extract_timestamp(file_name):
         return match.group(1)
     return None
 
-def download_latest_file(folder_id, base_name):
+def download_latest_file(folder_id, base_name, download_name):
     """Downloads the latest file matching the specified base name from Google Drive, ordered by the timestamp in the name."""
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
@@ -86,14 +83,13 @@ def download_latest_file(folder_id, base_name):
     logger.info("Fetching files from Google Drive...")
 
     try:
-        # List all files in the specified folder that match the base name
+        # List all files in the specified folder (no base_name filter)
         results = service.files().list(
-            q=f"'{folder_id}' in parents and name contains '{base_name}'",
+            q=f"'{folder_id}' in parents",  # Only check for files in the specified folder
             spaces='drive',
-            fields="files(id, name)",
+            fields="files(id, name)",  # Request file id and name
         ).execute()
         files = results.get('files', [])
-
     except Exception as e:
         logger.error(f"Failed to list files in Google Drive: {e}")
         return
@@ -101,6 +97,8 @@ def download_latest_file(folder_id, base_name):
     if not files:
         logger.info("No files found in the drive folder.")
         raise FileNotFoundError("No matching files found in the drive folder.")
+    else:
+        logger.info(f"Found {len(files)} files in the folder.")
 
     # Extract timestamps and sort files by the extracted timestamp
     files_with_timestamps = []
@@ -122,7 +120,7 @@ def download_latest_file(folder_id, base_name):
 
     # Download the latest file
     request = service.files().get_media(fileId=latest_file['id'])
-    file_path = os.path.join(os.getcwd(), 'discord_bot.db')
+    file_path = os.path.join(os.getcwd(), download_name)
 
     with io.FileIO(file_path, 'wb') as fh:
         downloader = MediaIoBaseDownload(fh, request)
