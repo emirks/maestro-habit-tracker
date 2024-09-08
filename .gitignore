@@ -1,3 +1,4 @@
 *.env*
 *.pyc
+*.pickle
 discord_bot.db
