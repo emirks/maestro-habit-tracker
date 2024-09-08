@@ -51,6 +51,13 @@ async def on_ready():
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     declaration_handler.init_tracking_handler(tracking_handler)
 
+    # Check if the 'discord_bot.db' file exists in the current directory
+    if not os.path.exists('discord_bot.db'):
+        logger.info("'discord_bot.db' does not exist. Downloading the latest version from Google Drive...")
+        drive.download_latest_file(DRIVE_FOLDER_ID, 'discord_bot')
+    else:
+        logger.info("'discord_bot.db' already exists. Skipping download.")
+
     # Start the weekly habit check task
     check_habits.start()  
     logger.debug("Started weekly habit check task.")
