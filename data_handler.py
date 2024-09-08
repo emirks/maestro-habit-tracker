@@ -364,6 +364,7 @@ class DatabaseHandler:
         Remove all habits named 'dev' and their associated tracking data.
         Uses the remove_habit_by_id method to delete each habit and its related data.
         """
+        logger.info(f"\nRemoving all the development purpose habit entries in the database")
         try:
             with closing(self.conn.cursor()) as cursor:
                 # Fetch all habits named 'dev'
@@ -383,7 +384,7 @@ class DatabaseHandler:
                     habit_id = habit[0]
                     self.remove_habit_by_id(habit_id)
                     logger.info(f"Habit with ID {habit_id} and name 'dev' has been removed.")
-
+                logger.info('\n')
         except sqlite3.Error as e:
             logger.error(f"Error removing habits named 'dev': {e}")
             raise
