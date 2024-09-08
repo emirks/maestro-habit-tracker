@@ -1,3 +1,6 @@
 discord.py==2.4.0
 Flask==3.0.3
+google_api_python_client==2.144.0
+google_auth_oauthlib==1.2.1
+protobuf==5.28.0
 python-dotenv==1.0.1
