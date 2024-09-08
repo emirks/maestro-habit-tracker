@@ -5,7 +5,7 @@ from google.oauth2.service_account import Credentials
 import io
 import re
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 # Set up logging
@@ -131,12 +131,74 @@ def download_latest_file(folder_id, base_name, download_name):
 
     logger.info(f"File '{latest_file['name']}' downloaded successfully to {file_path}")
 
+def upload_file_as_biggest_entry(db_file_name, folder_id, base_name):
+    """
+    Uploads the provided file to Google Drive with a name that is 5 minutes later
+    than the most recent timestamped file in the specified folder.
+    """
+    creds = authenticate()
+    service = build('drive', 'v3', credentials=creds)
+
+    logger.info("Fetching files to determine the latest timestamped entry...")
+
+    # List all files in the specified folder
+    try:
+        results = service.files().list(
+            q=f"'{folder_id}' in parents",
+            spaces='drive',
+            fields="files(id, name)"
+        ).execute()
+        files = results.get('files', [])
+    except Exception as e:
+        logger.error(f"Failed to list files in Google Drive: {e}")
+        return
+
+    if not files:
+        logger.info("No files found in the folder, using the current timestamp.")
+        latest_timestamp = datetime.now()
+    else:
+        # Extract timestamps from file names
+        files_with_timestamps = []
+        for file in files:
+            timestamp_str = extract_timestamp(file['name'])
+            if timestamp_str:
+                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d_%H-%M-%S")
+                files_with_timestamps.append((file, timestamp))
+
+        if not files_with_timestamps:
+            logger.info("No valid timestamp found, using current time.")
+            latest_timestamp = datetime.now()
+        else:
+            # Sort by the latest timestamp
+            latest_timestamp = max(files_with_timestamps, key=lambda x: x[1])[1]
+            logger.info(f"Latest timestamp found: {latest_timestamp}")
+
+    # Add 5 minutes to the latest timestamp
+    new_timestamp = latest_timestamp + timedelta(minutes=1)
+    new_file_name = f"{base_name}_{new_timestamp.strftime('%Y-%m-%d_%H-%M-%S')}.db"
+
+    # Prepare the file metadata and upload
+    file_metadata = {
+        'name': new_file_name,
+        'parents': [folder_id]
+    }
+    media = MediaFileUpload(db_file_name, mimetype='application/octet-stream')
+
+    try:
+        # Upload the file to Google Drive
+        uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        logger.info(f'File uploaded successfully with ID: {uploaded_file.get("id")} and name: {new_file_name}')
+    except Exception as e:
+        logger.error(f"Failed to upload file: {e}")
+        raise
+
 if __name__ == '__main__':
     # Replace with your Google Drive folder ID
-    folder_id = '1bpEvZb364J0Sdn6kA7FPfIhdl_6AmWfY'
+    folder_id = 'folder_id'
     
     # # Example: Upload file with a timestamped name
     # upload_file('discord_bot.db', folder_id)
 
     # Example: Download the latest file matching 'discord_bot'
-    download_latest_file(folder_id, 'discord_bot')
+    # download_latest_file(folder_id, 'discord_bot')
+    upload_file_as_biggest_entry('discord_bot_2024-09-08_16-25-52.db', folder_id, base_name='discord_bot')
