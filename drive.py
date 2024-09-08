@@ -4,10 +4,12 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 import io
 import re
 import logging
 from datetime import datetime
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,26 +19,28 @@ logger = logging.getLogger(__name__)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def authenticate():
-    """Shows basic usage of the Drive API with OAuth."""
+    """Authenticate using either a Service Account or OAuth."""
     creds = None
-    # Check if token.pickle exists, storing user's access and refresh tokens
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    service_account_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+
     
-    # If no valid credentials, let the user log in
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+    # Save the service account credentials to a temporary file
+    service_account_info = json.loads(service_account_json)
+    service_account_path = 'service_account_temp.json'
     
+    with open(service_account_path, 'w') as f:
+        json.dump(service_account_info, f)
+    
+    # Authenticate using service account credentials
+    creds = Credentials.from_service_account_file(service_account_path, scopes=SCOPES)
+    logger.info("Authenticated using Service Account.")
+    
+    # Remove the temporary file after use
+    os.remove(service_account_path)
+    
+
     return creds
+
 
 def generate_timestamped_name():
     """Generates a file name in the format discord_bot_timestamp.db"""
@@ -118,7 +122,7 @@ def download_latest_file(folder_id, base_name):
 
     # Download the latest file
     request = service.files().get_media(fileId=latest_file['id'])
-    file_path = os.path.join(os.getcwd(), latest_file['name'])
+    file_path = os.path.join(os.getcwd(), 'discord_bot.db')
 
     with io.FileIO(file_path, 'wb') as fh:
         downloader = MediaIoBaseDownload(fh, request)
@@ -133,8 +137,8 @@ if __name__ == '__main__':
     # Replace with your Google Drive folder ID
     folder_id = '1bpEvZb364J0Sdn6kA7FPfIhdl_6AmWfY'
     
-    # Example: Upload file with a timestamped name
-    upload_file('discord_bot.db', folder_id)
+    # # Example: Upload file with a timestamped name
+    # upload_file('discord_bot.db', folder_id)
 
     # Example: Download the latest file matching 'discord_bot'
     download_latest_file(folder_id, 'discord_bot')

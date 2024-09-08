@@ -156,7 +156,7 @@ async def before_check_habits():
 async def upload_db_to_drive():
     try:
         # Assuming drive.upload_file is already implemented and works
-        drive.upload_file('discord_bot.db', 'discord_bot', DRIVE_FOLDER_ID)
+        drive.upload_file('discord_bot.db', DRIVE_FOLDER_ID)
         logger.info("Successfully uploaded discord_bot.db to Google Drive.")
     except Exception as e:
         logger.error(f"Failed to upload discord_bot.db to Google Drive: {e}")
