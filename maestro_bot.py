@@ -5,8 +5,6 @@ from discord import app_commands
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta, timezone
-from declaration.declaration_handler import DeclarationHandler
-from tracking.tracking_handler import TrackingHandler
 import logging
 import webserver
 import drive
@@ -19,6 +17,16 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
+
+# Check if the 'discord_bot.db' file exists in the current directory
+if not os.path.exists('discord_bot.db'):
+    logger.info("'discord_bot.db' does not exist. Downloading the latest version from Google Drive...")
+    drive.download_latest_file(DRIVE_FOLDER_ID, 'discord_bot')
+else:
+    logger.info("'discord_bot.db' already exists. Skipping download.")
+
+from declaration.declaration_handler import DeclarationHandler
+from tracking.tracking_handler import TrackingHandler
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -50,13 +58,6 @@ async def on_ready():
     declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     declaration_handler.init_tracking_handler(tracking_handler)
-
-    # Check if the 'discord_bot.db' file exists in the current directory
-    if not os.path.exists('discord_bot.db'):
-        logger.info("'discord_bot.db' does not exist. Downloading the latest version from Google Drive...")
-        drive.download_latest_file(DRIVE_FOLDER_ID, 'discord_bot')
-    else:
-        logger.info("'discord_bot.db' already exists. Skipping download.")
 
     # Start the weekly habit check task
     check_habits.start()  
