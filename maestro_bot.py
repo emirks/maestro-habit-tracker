@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
+from data_handler import DatabaseHandler
 import logging
 import webserver
 import drive
@@ -82,6 +83,10 @@ async def on_ready():
     declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     declaration_handler.init_tracking_handler(tracking_handler)
+    
+    db_handler = DatabaseHandler()
+    # Remove all development habits
+    db_handler.remove_all_dev_habits()
 
     # Start the weekly habit check task
     check_habits.start()  
