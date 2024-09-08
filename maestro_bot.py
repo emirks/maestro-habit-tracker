@@ -7,13 +7,13 @@ import webserver
 import drive
 import os
 
-# Empty cached env variables
-os.environ.pop('DISCORD_BOT_TOKEN', None)
-os.environ.pop('DISCORD_BOT_DB_NAME', None)
-os.environ.pop('DRIVE_FOLDER_ID', None)
-os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
-os.environ.pop('GUILD_NAME', None)
-os.environ.pop('ENV', None)
+# # Empty cached env variables
+# os.environ.pop('DISCORD_BOT_TOKEN', None)
+# os.environ.pop('DISCORD_BOT_DB_NAME', None)
+# os.environ.pop('DRIVE_FOLDER_ID', None)
+# os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
+# os.environ.pop('GUILD_NAME', None)
+# os.environ.pop('ENV', None)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
