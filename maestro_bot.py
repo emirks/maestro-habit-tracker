@@ -1,4 +1,6 @@
 import discord
+from discord import ButtonStyle
+from discord.ui import Button, View
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
@@ -8,13 +10,13 @@ import drive
 import os
 
 # # # Empty cached env variables
-# # THOSE SHOULD COMMENTED IN THE PRODUCTION ENVIRONMENT
-# os.environ.pop('DISCORD_BOT_TOKEN', None)
-# os.environ.pop('DISCORD_BOT_DB_NAME', None)
-# os.environ.pop('DRIVE_FOLDER_ID', None)
-# os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
-# os.environ.pop('GUILD_NAME', None)
-# os.environ.pop('ENV', None)
+# THOSE SHOULD COMMENTED IN THE PRODUCTION ENVIRONMENT
+os.environ.pop('DISCORD_BOT_TOKEN', None)
+os.environ.pop('DISCORD_BOT_DB_NAME', None)
+os.environ.pop('DRIVE_FOLDER_ID', None)
+os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
+os.environ.pop('GUILD_NAME', None)
+os.environ.pop('ENV', None)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -134,6 +136,29 @@ async def habits(interaction: discord.Interaction):
         logging.warning("Guild is not initialized. Cannot see habits.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
+# Donation command
+@bot.tree.command(name="donate", description="Get the link to support us with donations")
+async def donate(interaction: discord.Interaction):
+    # Your donation link (replace this with your actual donation link)
+    donation_link = "https://patreon.com/MaestroDev"
+
+    # Create an embed message
+    embed = discord.Embed(
+        title="Support Us",
+        description="Thank you for considering donating to support us! You can donate by clicking the button below.",
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="Your support means a lot to us!")
+
+    # Create a button that links to the donation page
+    button = Button(label="Donate", url=donation_link, style=ButtonStyle.link)
+
+    # Create a view to hold the button
+    view = View()
+    view.add_item(button)
+
+    # Send the donation message with the embed and button
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 # Check if the user has administrator permissions
 def is_admin():
