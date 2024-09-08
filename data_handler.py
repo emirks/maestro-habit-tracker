@@ -1,6 +1,7 @@
 import sqlite3
 from contextlib import closing
 import logging
+logger = logging.getLogger(__name__)
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -9,8 +10,8 @@ load_dotenv()
 DB_NAME = os.environ['DISCORD_BOT_DB_NAME']
 
 class DatabaseHandler:
-    def __init__(self, init=False):
-        self.db_name = DB_NAME
+    def __init__(self, init=False, db_name=None):
+        self.db_name = db_name if db_name else DB_NAME # Accept environment value if not forced
         self.conn = None
         self.connect()
         if init:
@@ -22,9 +23,9 @@ class DatabaseHandler:
             if self.conn:
                 self.conn.close()  # Ensure any existing connection is closed before reopening
             self.conn = sqlite3.connect(self.db_name)
-            logging.info(f"Connected to the database: {self.db_name}")
+            logger.info(f"Connected to the database: {self.db_name}")
         except sqlite3.Error as e:
-            logging.error(f"Error connecting to database: {e}")
+            logger.error(f"Error connecting to database: {e}")
             raise
 
     def _init_tables(self):
@@ -133,9 +134,9 @@ class DatabaseHandler:
                     VALUES (?, ?, ?, ?, ?)
                 ''', (user_id, tracking_channel_id, habit_name, time_location, identity))
             
-            logging.info(f"Habit '{habit_name}' added successfully for user {user_id} in channel {tracking_channel_id}.")
+            logger.info(f"Habit '{habit_name}' added successfully for user {user_id} in channel {tracking_channel_id}.")
         except sqlite3.Error as e:
-            logging.error(f"Error adding habit for user {user_id}: {e}")
+            logger.error(f"Error adding habit for user {user_id}: {e}")
             raise
 
     def update_habit_with_data(self, habit_data, tracking_channel_id, habit_id):
@@ -155,11 +156,11 @@ class DatabaseHandler:
                     WHERE id = ?
                 ''', (user_id, tracking_channel_id, habit_name, time_location, identity, habit_id))
             
-                logging.info(f"Habit ID {habit_id} updated successfully with new data.")
+                logger.info(f"Habit ID {habit_id} updated successfully with new data.")
             
             
         except sqlite3.Error as e:
-            logging.error(f"Error adding habit for user {user_id}: {e}")
+            logger.error(f"Error adding habit for user {user_id}: {e}")
             raise
 
     def add_user_to_tracking_channel(self, user_id, channel_id):
@@ -176,7 +177,7 @@ class DatabaseHandler:
                 
                 if not channel:
                     # Channel does not exist, create it
-                    logging.info(f"Channel {channel_id} does not exist. Creating new channel.")
+                    logger.info(f"Channel {channel_id} does not exist. Creating new channel.")
                     with self.conn:
                         self.conn.execute('''
                             INSERT INTO tracking_channels (channel_id)
@@ -197,7 +198,7 @@ class DatabaseHandler:
                         slot = i + 1
                         break
                 else:
-                    logging.error(f"Channel {channel_id} is already full.")
+                    logger.error(f"Channel {channel_id} is already full.")
                     return False
 
                 # Update the table with the new user in the first available slot
@@ -209,16 +210,16 @@ class DatabaseHandler:
                         WHERE channel_id = ?
                     ''', (user_id, channel_id))
 
-                logging.info(f"User {user_id} added to channel {channel_id} in slot {slot}.")
+                logger.info(f"User {user_id} added to channel {channel_id} in slot {slot}.")
                 return True
         except sqlite3.Error as e:
-            logging.error(f"Error adding user to channel {channel_id}: {e}")
+            logger.error(f"Error adding user to channel {channel_id}: {e}")
             raise
         
     def mark_habit_completed(self, habit_id, completed, current_week=True, week_key=None):
         try:
             week_key = self._get_week_key(current_week, week_key) if week_key else week_key
-            logging.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
+            logger.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
 
             with self.conn:
                 with closing(self.conn.cursor()) as cursor:
@@ -228,9 +229,9 @@ class DatabaseHandler:
                     self._insert_or_update_tracking(cursor, habit_id, week_key, completed, new_streak)
 
         except sqlite3.IntegrityError:
-            logging.warning(f"Habit with ID {habit_id} already has a record for week {week_key}.")
+            logger.warning(f"Habit with ID {habit_id} already has a record for week {week_key}.")
         except sqlite3.Error as e:
-            logging.error(f"Error marking habit as completed: {e}")
+            logger.error(f"Error marking habit as completed: {e}")
             raise
 
     def _get_week_key(self, current_week, week_key):
@@ -248,7 +249,7 @@ class DatabaseHandler:
         ''', (habit_id,))
         last_streak_record = cursor.fetchone()
         if last_streak_record:
-            logging.debug(f"Last streak record found: last_week_key={last_streak_record[0]}, last_streak={last_streak_record[1]}")
+            logger.debug(f"Last streak record found: last_week_key={last_streak_record[0]}, last_streak={last_streak_record[1]}")
         return last_streak_record
 
     def _calculate_new_streak(self, completed, last_streak_record, week_key):
@@ -259,28 +260,28 @@ class DatabaseHandler:
                 
                 # If the last streak week is not passed, streak continues unchanged
                 if last_week_key == week_key:
-                    logging.debug(f"Same week, streak continues unchanged: new_streak={last_streak}")
+                    logger.debug(f"Same week, streak continues unchanged: new_streak={last_streak}")
                     return last_streak  
                 
                 # Last week matches the expected previous week, streak continues
                 elif last_week_key == self.get_previous_week_key(week_key):
                     new_streak = last_streak + 1  
-                    logging.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
+                    logger.debug(f"Last week matches expected previous week, streak incremented: new_streak={new_streak}")
                     return new_streak
                 
                 # In any other case of completion, start a new streak as 1
                 else:
-                    logging.debug(f"Streak reset: new_streak=1")
+                    logger.debug(f"Streak reset: new_streak=1")
                     return 1  # Streak reset
             
             # If habit is completed but last streak record is not found
             else:
-                logging.debug(f"Streak reset: new_streak=1")
+                logger.debug(f"Streak reset: new_streak=1")
                 return 1  # Streak reset
         
         # If habit is not completed
         else:
-            logging.debug(f"Not completed, resetting streak: new_streak=0")
+            logger.debug(f"Not completed, resetting streak: new_streak=0")
             return 0
         
         
@@ -291,9 +292,101 @@ class DatabaseHandler:
             VALUES (?, ?, ?, ?)
             ON CONFLICT(habit_id, week_key) DO UPDATE SET completed=excluded.completed, streak=excluded.streak
         ''', (habit_id, week_key, completed, new_streak))
-        logging.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
+        logger.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
 
 
+    def remove_habit_by_id(self, habit_id):
+        """
+        Remove a habit and its associated tracking data from the database.
+        Also, clear the user's slot in the tracking_channels table if applicable.
+
+        :param habit_id: The ID of the habit to be removed.
+        """
+        try:
+            with self.conn:
+                # Retrieve the habit's data, specifically the user_id and tracking_channel_id
+                cursor = self.conn.cursor()
+                cursor.execute('''
+                    SELECT user_id, tracking_channel_id
+                    FROM habits
+                    WHERE id = ?
+                ''', (habit_id,))
+                habit_data = cursor.fetchone()
+
+                if not habit_data:
+                    logger.error(f"No habit found with ID {habit_id}.")
+                    return
+
+                user_id, tracking_channel_id = habit_data
+
+                # Remove the tracking data related to the habit
+                self.conn.execute('''
+                    DELETE FROM tracking
+                    WHERE habit_id = ?
+                ''', (habit_id,))
+
+                # Remove the habit itself
+                self.conn.execute('''
+                    DELETE FROM habits
+                    WHERE id = ?
+                ''', (habit_id,))
+
+                # Clear the user's slot in the tracking_channels table
+                if tracking_channel_id:
+                    cursor.execute(f'''
+                        SELECT channel_id, user1_id, user2_id, user3_id, user4_id, user5_id, user6_id, user7_id, user8_id
+                        FROM tracking_channels
+                        WHERE channel_id = ?
+                    ''', (tracking_channel_id,))
+                    channel_data = cursor.fetchone()
+
+                    if channel_data:
+                        # Find the user's slot and set it to NULL
+                        for i, user in enumerate(channel_data[1:], start=1):  # Skip channel_id
+                            if user == user_id:
+                                column_name = f"user{i}_id"
+                                self.conn.execute(f'''
+                                    UPDATE tracking_channels
+                                    SET {column_name} = NULL
+                                    WHERE channel_id = ?
+                                ''', (tracking_channel_id,))
+                                logger.info(f"Cleared user {user_id} from slot {i} in channel {tracking_channel_id}.")
+                                break
+
+                logger.info(f"Habit with ID {habit_id} and its tracking data have been successfully removed.")
+
+        except sqlite3.Error as e:
+            logger.error(f"Error removing habit with ID {habit_id}: {e}")
+            raise
+
+    def remove_all_dev_habits(self):
+        """
+        Remove all habits named 'dev' and their associated tracking data.
+        Uses the remove_habit_by_id method to delete each habit and its related data.
+        """
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                # Fetch all habits named 'dev'
+                cursor.execute('''
+                    SELECT id
+                    FROM habits
+                    WHERE habit_name = ?
+                ''', ('dev',))
+                dev_habits = cursor.fetchall()
+
+                if not dev_habits:
+                    logger.info("No habits named 'dev' found.")
+                    return
+
+                # Remove each habit by ID
+                for habit in dev_habits:
+                    habit_id = habit[0]
+                    self.remove_habit_by_id(habit_id)
+                    logger.info(f"Habit with ID {habit_id} and name 'dev' has been removed.")
+
+        except sqlite3.Error as e:
+            logger.error(f"Error removing habits named 'dev': {e}")
+            raise
 
     ###################
     ### GET METHODS ###
@@ -334,10 +427,10 @@ class DatabaseHandler:
                     
                     return habit_list
                 else:
-                    logging.info(f"No habits found for user ID {user_id}.")
+                    logger.info(f"No habits found for user ID {user_id}.")
                     return []
         except sqlite3.Error as e:
-            logging.error(f"Error retrieving habits for user ID {user_id}: {e}")
+            logger.error(f"Error retrieving habits for user ID {user_id}: {e}")
             raise
     
     def get_user_habit_ids(self, user_id):
@@ -361,13 +454,13 @@ class DatabaseHandler:
                 habit_id_list = [habit_id[0] for habit_id in habit_ids] if habit_ids else []
                 
                 if habit_id_list:
-                    logging.info(f"Retrieved habit IDs for user ID {user_id}: {habit_id_list}")
+                    logger.info(f"Retrieved habit IDs for user ID {user_id}: {habit_id_list}")
                 else:
-                    logging.info(f"No habits found for user ID {user_id}.")
+                    logger.info(f"No habits found for user ID {user_id}.")
                 
                 return habit_id_list
         except sqlite3.Error as e:
-            logging.error(f"Error retrieving habit IDs for user ID {user_id}: {e}")
+            logger.error(f"Error retrieving habit IDs for user ID {user_id}: {e}")
             raise
 
     def get_habit_data(self, habit_id):
@@ -407,35 +500,31 @@ class DatabaseHandler:
                     }
                     return habit_data
                 else:
-                    logging.info(f"No habit found with ID {habit_id}.")
+                    logger.info(f"No habit found with ID {habit_id}.")
                     return None
         except sqlite3.Error as e:
-            logging.error(f"Error retrieving habit data for habit ID {habit_id}: {e}")
+            logger.error(f"Error retrieving habit data for habit ID {habit_id}: {e}")
             raise
 
     def get_habits_in_channel(self, channel_id):
         try:
             with closing(self.conn.cursor()) as cursor:
-                # Perform a JOIN to retrieve all habits and corresponding user IDs for users in the given channel
+                # Perform a JOIN to retrieve all habits for users in the given channel
                 cursor.execute('''
                     SELECT h.user_id, h.id, h.habit_name
                     FROM habits h
-                    JOIN tracking_channels tc ON h.user_id IN (
-                        tc.user1_id, tc.user2_id, tc.user3_id, 
-                        tc.user4_id, tc.user5_id, tc.user6_id, 
-                        tc.user7_id, tc.user8_id
-                    )
-                    WHERE h.tracking_channel_id = tc.channel_id
-                    AND tc.channel_id = ?
+                    JOIN tracking_channels tc ON h.tracking_channel_id = tc.channel_id
+                    WHERE tc.channel_id = ?
                 ''', (channel_id,))
                 
                 habits = cursor.fetchall()
-                
+                logging.info(f"Habits fetched: {habits}")
                 return habits if habits else []
                     
         except sqlite3.Error as e:
-            logging.error(f"Error retrieving habits for channel {channel_id}: {e}")
+            logger.error(f"Error retrieving habits for channel {channel_id}: {e}")
             raise
+
     
     def get_previous_week_key(self, current_week_key):
         """
@@ -445,7 +534,7 @@ class DatabaseHandler:
         :return: The previous week key.
         """
         year, week = map(int, current_week_key.split('-W'))
-        logging.debug(f"Calculating previous week key from: current_week_key={current_week_key}")
+        logger.debug(f"Calculating previous week key from: current_week_key={current_week_key}")
         
         if week > 1:
             previous_week_key = f"{year}-W{week-1:02d}"
@@ -455,7 +544,7 @@ class DatabaseHandler:
             previous_week = datetime.strptime(f"{previous_year}-12-28", "%Y-%m-%d").isocalendar()[1]
             previous_week_key = f"{previous_year}-W{previous_week:02d}"
         
-        logging.debug(f"Previous week key calculated: previous_week_key={previous_week_key}")
+        logger.debug(f"Previous week key calculated: previous_week_key={previous_week_key}")
         return previous_week_key
 
     def get_current_streak(self, habit_id):
@@ -477,7 +566,7 @@ class DatabaseHandler:
                 streak_record = cursor.fetchone()
                 return streak_record[0] if streak_record else 0
         except sqlite3.Error as e:
-            logging.error(f"Error retrieving current streak for habit ID {habit_id}: {e}")
+            logger.error(f"Error retrieving current streak for habit ID {habit_id}: {e}")
             raise
 
     ###########################
@@ -492,20 +581,20 @@ class DatabaseHandler:
                     for table_name in tables:
                         if table_name[0] != 'sqlite_sequence':  # Skip the special sqlite_sequence table
                             cursor.execute(f"DROP TABLE IF EXISTS {table_name[0]};")
-                            logging.info(f"Dropped table {table_name[0]}")
+                            logger.info(f"Dropped table {table_name[0]}")
                     self.conn.commit()
-                    logging.info("Database reset completed.")
+                    logger.info("Database reset completed.")
                 # Optionally, reinitialize the tables after the reset
                 self._init_tables()
             except sqlite3.Error as e:
-                logging.error(f"Error resetting the database: {e}")
+                logger.error(f"Error resetting the database: {e}")
                 raise
 
 
     def close(self):
         try:
             self.conn.close()
-            logging.info(f"Disconnected from the database: {self.db_name}")
+            logger.info(f"Disconnected from the database: {self.db_name}")
         except sqlite3.Error as e:
             print(f"Error closing the database connection: {e}")
             raise
