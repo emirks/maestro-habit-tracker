@@ -134,5 +134,5 @@ class DeclarationHandler:
         self.db_handler.add_habit_with_data(habit_data, habit_tracking_channel.id)
         self.db_handler.close()
 
-        await interaction.response.send_message(f"{interaction.user.mention} Your habit has been declared, and you have been added to the {habit_tracking_channel.mention} channel for tracking your habit!", ephemeral=True)
+        await interaction.followup.send(f"{interaction.user.mention} Your habit has been declared, and you have been added to the {habit_tracking_channel.mention} channel for tracking your habit!", ephemeral=True)
         logger.debug("User notified of successful habit declaration.")
