@@ -18,7 +18,7 @@ class DeclarationView(discord.ui.View):
 
         self.instructions_embed = self.create_instructions_embed()  # Create the embed during initialization
         self.full_form_embed = self.create_full_form_embed()
-        logger.debug(f"DeclareView initialized with handler: %s", handler)
+        logger.info(f"DeclareView initialized with handler: %s", handler)
 
     async def disable_all_buttons(self):
         """Disable all buttons in the view."""
