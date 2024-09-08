@@ -75,8 +75,6 @@ class DeclarationView(discord.ui.View):
     
             await self.handler.send_declaration_modal(interaction)
 
-            #await self.disable_all_buttons()
-            await interaction.message.edit(view=self)
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
 
