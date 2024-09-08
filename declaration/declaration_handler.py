@@ -70,9 +70,10 @@ class DeclarationHandler:
         else:
             await interaction.response.send_message(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
 
-    async def send_habit_edit_modal(self, interaction: discord.Interaction, habit_data):
+    async def send_habit_edit_modal(self, interaction: discord.Interaction, habit_data, tracking_channel_id):
         from declaration.components import HabitEditModal
-        modal = HabitEditModal(self, habit_data)
+        tracking_channel = self.guild.get_channel(tracking_channel_id)
+        modal = HabitEditModal(self, habit_data, tracking_channel)
         await interaction.response.send_modal(modal)
         
         # Wait for the modal to be submitted and handle the data
@@ -83,14 +84,14 @@ class DeclarationHandler:
         modal = HabitDeclarationModal(self)
         await interaction.response.send_modal(modal)
 
-    async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict, habit_id=None):
+    async def handle_habit_submission(self, interaction: discord.Interaction, habit_data: dict, habit_id=None, predefined_tracking_channel: discord.TextChannel = None):
         # Add the user to the database if they do not exist
         self.db_handler.connect()
         self.db_handler.add_user(interaction.user.id, interaction.user.name)
 
         logger.debug(f"Handling habit submission for user: {interaction.user.name} (ID: {interaction.user.id})")
         habit_declaration_channel = discord.utils.get(interaction.guild.text_channels, name=self.habit_declaration_channel)
-        habit_tracking_channel = await self.tracking_channel_manager.get_or_create_tracking_channel()
+        habit_tracking_channel = predefined_tracking_channel if predefined_tracking_channel else await self.tracking_channel_manager.get_or_create_tracking_channel()
         
         # If habit id is given, update the data
         if habit_id:

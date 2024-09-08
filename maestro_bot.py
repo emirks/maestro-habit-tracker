@@ -2,13 +2,13 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
-from data_handler import DatabaseHandler
 import logging
 import webserver
 import drive
 import os
 
-# # Empty cached env variables
+# # # Empty cached env variables
+# # THOSE SHOULD COMMENTED IN THE PRODUCTION ENVIRONMENT
 # os.environ.pop('DISCORD_BOT_TOKEN', None)
 # os.environ.pop('DISCORD_BOT_DB_NAME', None)
 # os.environ.pop('DRIVE_FOLDER_ID', None)
@@ -84,6 +84,7 @@ async def on_ready():
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     declaration_handler.init_tracking_handler(tracking_handler)
     
+    from data_handler import DatabaseHandler
     db_handler = DatabaseHandler()
     # Remove all development habits
     db_handler.remove_all_dev_habits()

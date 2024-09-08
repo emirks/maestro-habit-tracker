@@ -137,9 +137,10 @@ class HabitDeclarationModal(discord.ui.Modal):
     
 
 class HabitEditModal(discord.ui.Modal):
-    def __init__(self, declaration_handler: DeclarationHandler, habit_data: dict):
+    def __init__(self, declaration_handler: DeclarationHandler, habit_data: dict, tracking_channel: discord.TextChannel):
         super().__init__(title="Edit Habit")
         self.habit_data = habit_data
+        self.tracking_channel = tracking_channel
         self.declaration_handler = declaration_handler
         self.submission_event = asyncio.Event()
         logger.debug("HabitEditModal initialized with handler: %s", declaration_handler)
@@ -188,7 +189,7 @@ class HabitEditModal(discord.ui.Modal):
         }
         logger.debug("Updated habit data collected: %s", self.updated_habit_data)
 
-        await self.declaration_handler.handle_habit_submission(interaction, self.updated_habit_data, self.habit_data.get('habit_id'))
+        await self.declaration_handler.handle_habit_submission(interaction, self.updated_habit_data, self.habit_data.get('habit_id'), predefined_tracking_channel=self.tracking_channel)
         self.submission_event.set()
         logger.debug("Habit edit submission handled for user: %s", interaction.user.name)
 
@@ -221,7 +222,12 @@ class DetailedHabitCardView(discord.ui.View):
             habit_data = self.tracking_handler.db_handler.get_habit_data(habit_id)
             current_streak = self.tracking_handler.db_handler.get_current_streak(habit_id)
             tracking_channel_id = habit_data['tracking_channel_id']
-            tracking_channel_name = self.guild.get_channel(tracking_channel_id).name
+            tracking_channel = self.guild.get_channel(tracking_channel_id)
+            if tracking_channel:
+                tracking_channel_name = self.guild.get_channel(tracking_channel_id).name
+                logger.info(f"Tracking channel with id {tracking_channel_id} does not exist. ")
+            else:
+                continue
 
             embed = self.create_embed(habit_data, current_streak, tracking_channel_name)
             embeds.append(embed)
@@ -263,9 +269,10 @@ class DetailedHabitCardView(discord.ui.View):
             if interaction.user.id == self.user_id:
                 self.tracking_handler.db_handler.connect()
                 logger.debug(f"'Edit Habit' button clicked by {interaction.user.name} (ID: {interaction.user.id}) for habit ID: {habit_id}")
-                
+                habit_data = self.tracking_handler.db_handler.get_habit_data(habit_id)
+                tracking_channel_id = habit_data['tracking_channel_id']
                 # Wait for the declaration modal to be submitted and handled
-                habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, self.tracking_handler.db_handler.get_habit_data(habit_id))
+                habit_data = await self.declaration_handler.send_habit_edit_modal(interaction, habit_data, tracking_channel_id)
                 logger.debug(f"Habit data after modal submission: {habit_data}")
                 
                 # Update the habit check message with the new data
