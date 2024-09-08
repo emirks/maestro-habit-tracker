@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-DB_NAME = os.getenv('DISCORD_BOT_DB_NAME')
+DB_NAME = os.environ['DISCORD_BOT_DB_NAME']
 
 class DatabaseHandler:
     def __init__(self, init=False):

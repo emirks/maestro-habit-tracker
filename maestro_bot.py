@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from declaration.declaration_handler import DeclarationHandler
 from tracking.tracking_handler import TrackingHandler
 import logging
+import webserver
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
-TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+TOKEN = os.environ['DISCORD_BOT_TOKEN']
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -136,6 +137,8 @@ async def before_check_habits():
     await bot.wait_until_ready()
     logger.debug("Bot is ready, starting habit check loop.")
 
+
+webserver.keep_alive()
 # Run the bot
 logger.info("Running the bot.")
 bot.run(TOKEN)
