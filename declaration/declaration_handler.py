@@ -68,7 +68,7 @@ class DeclarationHandler:
             )
             logger.info(f"Declaration View Sent.")
         else:
-            await interaction.response.send_message(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
+            await interaction.followup.send(f"Please declare your habit in {habit_declaration_channel.mention}", ephemeral=True)
 
     async def send_habit_edit_modal(self, interaction: discord.Interaction, habit_data, tracking_channel_id):
         from declaration.components import HabitEditModal
