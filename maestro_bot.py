@@ -9,8 +9,8 @@ import webserver
 import drive
 import os
 
-# # # Empty cached env variables
-# THOSE SHOULD COMMENTED IN THE PRODUCTION ENVIRONMENT
+# # # # Empty cached env variables
+# # THOSE SHOULD BE COMMENTED IN THE PRODUCTION ENVIRONMENT
 # os.environ.pop('DISCORD_BOT_TOKEN', None)
 # os.environ.pop('DISCORD_BOT_DB_NAME', None)
 # os.environ.pop('DRIVE_FOLDER_ID', None)
@@ -136,29 +136,37 @@ async def habits(interaction: discord.Interaction):
         logging.warning("Guild is not initialized. Cannot see habits.")
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
-# Donation command
-@bot.tree.command(name="donate", description="Get the link to support us with donations")
-async def donate(interaction: discord.Interaction):
-    # Your donation link (replace this with your actual donation link)
-    donation_link = "https://patreon.com/MaestroDev"
+# Donation and Membership command
+@bot.tree.command(name="support", description="Get the links to support us via membership or donations")
+async def support(interaction: discord.Interaction):
+    # Your links to Patreon and Buy Me a Coffee
+    patreon_link = "https://patreon.com/emir_kisa"
+    buymeacoffee_link = "https://buymeacoffee.com/maestro.bot"
 
     # Create an embed message
     embed = discord.Embed(
         title="Support Us",
-        description="Thank you for considering donating to support us! You can donate by clicking the button below.",
+        description=(
+            "Thank you for considering supporting us! By becoming a member on Patreon, "
+            "you will gain access to exclusive features and benefits. Alternatively, you can "
+            "support us with a one-time donation via Buy Me a Coffee. Use the buttons below to contribute."
+        ),
         color=discord.Color.green()
     )
     embed.set_footer(text="Your support means a lot to us!")
 
-    # Create a button that links to the donation page
-    button = Button(label="Donate", url=donation_link, style=ButtonStyle.link)
+    # Create buttons for Patreon and Buy Me a Coffee
+    patreon_button = Button(label="Become a Member", url=patreon_link, style=ButtonStyle.link)
+    donate_button = Button(label="Donate", url=buymeacoffee_link, style=ButtonStyle.link)
 
-    # Create a view to hold the button
+    # Create a view to hold the buttons
     view = View()
-    view.add_item(button)
+    view.add_item(patreon_button)
+    view.add_item(donate_button)
 
-    # Send the donation message with the embed and button
+    # Send the support message with the embed and buttons
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
 
 # Check if the user has administrator permissions
 def is_admin():
