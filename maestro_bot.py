@@ -4,25 +4,15 @@ from discord.ui import Button, View
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
-import logging
 import webserver
 import drive
 import os
 
-# # # # Empty cached env variables
-# # THOSE SHOULD BE COMMENTED IN THE PRODUCTION ENVIRONMENT
-# os.environ.pop('DISCORD_BOT_TOKEN', None)
-# os.environ.pop('DISCORD_BOT_DB_NAME', None)
-# os.environ.pop('DRIVE_FOLDER_ID', None)
-# os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
-# os.environ.pop('GUILD_NAME', None)
-# os.environ.pop('ENV', None)
-
-# Set up logging
+import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Check if running in development or production mode
-environment = os.getenv('ENV', 'development')
+environment = os.environ['ENV']
 logging.info('\n')
 logging.info('='*128)
 logging.info(f"MODE: {environment}")
@@ -32,10 +22,10 @@ logging.info('\n')
 from dotenv import load_dotenv
 if environment == 'production':
     logging.info("Loading '.env'")
-    dotenv_loaded = load_dotenv('.env')  # Load production environment variables
+    dotenv_loaded = load_dotenv(dotenv_path='.env', override=True)  # Load production environment variables
 else:
     logging.info("Loading '.env.dev'")
-    dotenv_loaded = load_dotenv('.env.dev')  # Load development environment variables
+    dotenv_loaded = load_dotenv(dotenv_path='.env.dev', override=True)  # Load development environment variables
 logging.info(f".env file loaded: {dotenv_loaded}")
 
 DISCORD_BOT_TOKEN = os.environ['DISCORD_BOT_TOKEN']
