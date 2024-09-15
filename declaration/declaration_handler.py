@@ -3,7 +3,7 @@ import json
 import os
 from tracking.channel_management import TrackingChannelManager
 import logging
-from data_handler import DatabaseHandler
+from postgre_db_handler import DatabaseHandler
 
 
 # Set up logging
@@ -96,7 +96,7 @@ class DeclarationHandler:
         # If habit id is given, update the data
         if habit_id:
             self.db_handler.update_habit_with_data(habit_data, habit_tracking_channel.id, habit_id)
-            self.db_handler.close()
+            #self.db_handler.close_pool()
             await interaction.response.send_message(f"Your habit has been updated", ephemeral=True)
             return
 
@@ -134,7 +134,7 @@ class DeclarationHandler:
 
         # Save habit declaration to a database
         self.db_handler.add_habit_with_data(habit_data, habit_tracking_channel.id)
-        self.db_handler.close()
+        #self.db_handler.close_pool()
 
         await interaction.followup.send(f"{interaction.user.mention} Your habit has been declared, and you have been added to the {habit_tracking_channel.mention} channel for tracking your habit!", ephemeral=True)
         logger.debug("User notified of successful habit declaration.")

@@ -10,13 +10,14 @@ import drive
 import os
 
 # # # # Empty cached env variables
-# # THOSE SHOULD BE COMMENTED IN THE PRODUCTION ENVIRONMENT
-# os.environ.pop('DISCORD_BOT_TOKEN', None)
-# os.environ.pop('DISCORD_BOT_DB_NAME', None)
-# os.environ.pop('DRIVE_FOLDER_ID', None)
-# os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
-# os.environ.pop('GUILD_NAME', None)
-# os.environ.pop('ENV', None)
+# THOSE SHOULD BE COMMENTED IN THE PRODUCTION ENVIRONMENT
+os.environ.pop('DISCORD_BOT_TOKEN', None)
+os.environ.pop('DISCORD_BOT_DB_NAME', None)
+os.environ.pop('DRIVE_FOLDER_ID', None)
+os.environ.pop('GOOGLE_SERVICE_ACCOUNT_JSON', None)
+os.environ.pop('GUILD_NAME', None)
+os.environ.pop('ENV', None)
+os.environ.pop('NEON_DB_URL', None)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -86,7 +87,7 @@ async def on_ready():
     tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
     declaration_handler.init_tracking_handler(tracking_handler)
     
-    from data_handler import DatabaseHandler
+    from postgre_db_handler import DatabaseHandler
     db_handler = DatabaseHandler()
     # Remove all development habits
     db_handler.remove_all_dev_habits()
@@ -125,7 +126,7 @@ async def declare(interaction: discord.Interaction):
         await interaction.response.send_message("Guild not found. Please try again later.", ephemeral=True)
 
 # Command to show all habits
-@bot.tree.command(name="habits", description="See all habits")
+@bot.tree.command(name="habits", description="Maintain your habits")
 async def habits(interaction: discord.Interaction):
     logging.debug(f"habits command invoked by user: {interaction.user.name} (ID: {interaction.user.id})")
 

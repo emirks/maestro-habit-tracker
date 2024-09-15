@@ -55,7 +55,7 @@ class DetailedHabitCheckView(discord.ui.View):
         self.tracking_handler.db_handler.connect()
         self.habit_data = tracking_handler.db_handler.get_habit_data(habit_id)
         self.current_streak = tracking_handler.db_handler.get_current_streak(habit_id)
-        self.tracking_handler.db_handler.close()
+        #self.tracking_handler.db_handler.close_pool()
         self.week_key = datetime.now().strftime("%Y-W%U")
 
         self.check_text = f"{self.user.mention} did you accomplish your habit of {self.habit_data['habit_name'].lower()} {self.habit_data['time_location'].lower()} this week?"

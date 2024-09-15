@@ -2,7 +2,7 @@ import discord
 import logging
 logger = logging.getLogger(__name__)
 
-from data_handler import DatabaseHandler
+from postgre_db_handler import DatabaseHandler
 
 class TrackingChannelManager:
     def __init__(self, guild: discord.Guild, tracking_channel_prefix: str = 'habit-tracking', category_name: str = 'TRACKING CHANNELS'):

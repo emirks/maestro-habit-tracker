@@ -2,7 +2,7 @@ import discord
 from tracking.channel_management import TrackingChannelManager
 from tracking import congrats_messages, not_accomplished_messages
 from declaration.declaration_handler import DeclarationHandler
-from data_handler import DatabaseHandler
+from postgre_db_handler import DatabaseHandler
 import logging
 import json
 import random
@@ -31,7 +31,7 @@ class TrackingHandler:
         logger.debug(f"Handling habit check for {interaction.user.name} (ID: {interaction.user.id}), completed: {completed}")
         self.db_handler.connect()
         self.db_handler.mark_habit_completed(habit_id, completed, week_key=week_key)
-        self.db_handler.close()
+        #self.db_handler.close_pool()
         response_message = self.get_response_message(interaction, completed)
         await interaction.response.send_message(response_message)
         logger.debug(f"Sent response to {interaction.user.name}: {response_message}")
@@ -47,7 +47,7 @@ class TrackingHandler:
         for channel in channels:
             self.db_handler.connect()
             await self.send_habit_check_to_tracking_channel(channel)
-        self.db_handler.close()
+        #self.db_handler.close_pool()
 
     async def send_habit_check_to_tracking_channel(self, tracking_channel: discord.TextChannel):
         from tracking.components import BasicHabitCheckView, DetailedHabitCheckView
@@ -74,7 +74,7 @@ class TrackingHandler:
                     
                     await tracking_channel.send(
                         detailed_view.check_text, 
-                        embed=detailed_view.embed,  # Include the embed in the message
+                        embed=detailed_view.embed, # Include the embed in the message
                         view=detailed_view
                     )
                 except Exception as e:

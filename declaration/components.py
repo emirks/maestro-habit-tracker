@@ -214,7 +214,7 @@ class DetailedHabitCardView(discord.ui.View):
 
         # Create edit buttons for each habit
         self.create_edit_buttons()
-        self.tracking_handler.db_handler.close()
+        #self.tracking_handler.db_handler.close_pool()
 
     def create_embed_for_all_habits(self):
         embeds = []
@@ -277,7 +277,7 @@ class DetailedHabitCardView(discord.ui.View):
                 
                 # Update the habit check message with the new data
                 await self.update_habit_check_message(interaction, habit_data, habit_id)
-                self.tracking_handler.db_handler.close()
+                #self.tracking_handler.db_handler.close_pool()
             else:
                 await interaction.response.send_message("This button is not for you.", ephemeral=True)
         return callback
@@ -302,7 +302,7 @@ class DetailedHabitCardView(discord.ui.View):
         current_streak = self.tracking_handler.db_handler.get_current_streak(habit_id)
         tracking_channel_name = self.guild.get_channel(updated_habit_data['tracking_channel_id']).name
         new_embed = self.create_embed(updated_habit_data, current_streak, tracking_channel_name)
-        self.tracking_handler.db_handler.close()
+        #self.tracking_handler.db_handler.close_pool()
 
         # Send a new message with the updated embed and view
         await interaction.followup.send(
