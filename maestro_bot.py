@@ -14,9 +14,9 @@ logging.basicConfig(level=logging.DEBUG)
 # Check if running in development or production mode
 environment = os.environ['ENV']
 logging.info('\n')
-logging.info('='*128)
+logging.info('='*32)
 logging.info(f"MODE: {environment}")
-logging.info('='*128)
+logging.info('='*32)
 logging.info('\n')
 
 from dotenv import load_dotenv
