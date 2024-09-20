@@ -4,12 +4,14 @@ from discord.ui import Button, View
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
-import webserver
 import drive
 import os
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+from flask import Flask
+app = Flask(__name__)
 
 # Check if running in development or production mode
 environment = os.environ['ENV']
@@ -220,8 +222,6 @@ async def before_upload_db_to_drive():
     await bot.wait_until_ready()
     logging.debug("Bot is ready, starting DB upload task loop.")
 
-
-webserver.keep_alive()
 # Run the bot
 logging.info("Running the bot.")
 bot.run(DISCORD_BOT_TOKEN)
