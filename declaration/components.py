@@ -225,8 +225,8 @@ class DetailedHabitCardView(discord.ui.View):
             tracking_channel = self.guild.get_channel(tracking_channel_id)
             if tracking_channel:
                 tracking_channel_name = self.guild.get_channel(tracking_channel_id).name
-                logger.info(f"Tracking channel with id {tracking_channel_id} does not exist. ")
             else:
+                logger.info(f"Tracking channel with id {tracking_channel_id} does not exist. ")
                 continue
 
             embed = self.create_embed(habit_data, current_streak, tracking_channel_name)
