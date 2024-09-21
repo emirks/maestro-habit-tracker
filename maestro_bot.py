@@ -198,7 +198,7 @@ async def check_habits():
 
     logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}")
 
-    if current_day == 5 and current_hour == 12:  # Saturday at 12:xx PM UTC+3
+    if current_day == 5 and current_hour == 12:  # Saturday at 12:xx AM UTC+3
         logging.info("It's Saturday between 12:00 and 12:59 (UTC+3). Sending habit check.")
         await tracking_handler.send_habit_check_to_all_tracking_channels()
 
