@@ -190,7 +190,7 @@ async def check(interaction: discord.Interaction):
 utc_plus_3 = timezone(timedelta(hours=3))
 
 # Task to check habits every hour
-@tasks.loop(hours=1)  # Runs every hour
+@tasks.loop(minutes=1)  # Runs every minute
 async def check_habits():
     current_time = datetime.now(utc_plus_3)  # Get the current time in UTC+3
     current_day = current_time.weekday()
