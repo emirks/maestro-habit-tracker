@@ -2,7 +2,7 @@
 FROM python:3.11-slim
 
 # Set persistent environment variables
-ENV ENV=development
+ENV ENV=production
 
 # Set the working directory in the container
 WORKDIR /app
