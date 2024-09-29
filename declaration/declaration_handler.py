@@ -126,7 +126,7 @@ class DeclarationHandler:
         
         # Add the user to the habit-tracking channel
         if habit_tracking_channel:
-            await self.tracking_channel_manager.add_user_to_text_channel(interaction.user, habit_tracking_channel)
+            await self.tracking_channel_manager.assign_role_to_user_for_channel(interaction.user, habit_tracking_channel)
             logger.debug(f"User {interaction.user.name} added to habit tracking channel: {habit_tracking_channel.name}")
 
             # Add user to the tracking channel table

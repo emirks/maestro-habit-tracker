@@ -11,8 +11,18 @@ class TrackingChannelManager:
         self.category_name = category_name
         self.db_handler = DatabaseHandler()
 
-    async def add_user_to_text_channel(self, user: discord.User, channel: discord.TextChannel):
-        await channel.set_permissions(user, read_messages=True, send_messages=True)
+    async def assign_role_to_user_for_channel(self, user: discord.User, channel: discord.TextChannel):
+        # Get the role for the channel
+        role = discord.utils.get(self.guild.roles, name=channel.name)
+        
+        if role:
+            # Assign the role to the user
+            await user.add_roles(role)
+            logger.info(f"Assigned role '{role.name}' to user '{user.name}'")
+        else:
+            logger.warning(f"Role for channel '{channel.name}' not found.")
+
+
 
     async def get_or_create_tracking_channel(self) -> discord.TextChannel:
         logger.info('\n'*2)
@@ -67,14 +77,23 @@ class TrackingChannelManager:
         return [channel for channel in category.text_channels if channel.name.startswith(self.tracking_channel_prefix)]
     
     async def _create_tracking_channel(self, category: discord.CategoryChannel, new_channel_name: str) -> discord.TextChannel:
-        # Set permissions
+        # Create a role with the same name as the channel
+        new_role = await self.guild.create_role(name=new_channel_name)
+        
+        # Set permissions for the role
         permission_overwrites = {
-            self.guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-            self.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            self.guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),  # Show channel to everyone
+            new_role: discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Allow this role to access
+            self.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)  # Bot can manage the channel
         }
 
+        # Create a new text channel with permissions
         new_channel = await category.create_text_channel(
             new_channel_name,
             overwrites=permission_overwrites,
         )
+
+        # Log the creation
+        logger.info(f"Created new channel '{new_channel_name}' with role '{new_role.name}'")
+
         return new_channel
