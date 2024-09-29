@@ -18,6 +18,7 @@ class TrackingHandler:
         self.tracking_channel_manager = TrackingChannelManager(guild, habit_tracking_channels_prefix, habit_tracking_category_name)
         self.declaration_handler = declaration_handler
         self.db_handler = DatabaseHandler()
+        self.detailed_check_view_list = None
         logger.debug(f"TrackingHandler initialized with guild: {guild.name}, category name: {habit_tracking_category_name}")
 
     def get_response_message(self, interaction, completed):
@@ -43,11 +44,16 @@ class TrackingHandler:
         channels = self.tracking_channel_manager._get_tracking_channels(category)
         logger.debug(f"Found {len(channels)} tracking channels in category: {category.name}")
 
+        channel_view_lists = []
         self.db_handler.connect()
         for channel in channels:
             self.db_handler.connect()
-            await self.send_habit_check_to_tracking_channel(channel)
+            channel_view_list = await self.send_habit_check_to_tracking_channel(channel)
+            channel_view_lists.append(channel_view_list)
         self.db_handler.close()
+
+        concatanated_list = [item for sublist in channel_view_lists for item in sublist]
+        self.detailed_check_view_list = concatanated_list
 
     async def send_habit_check_to_tracking_channel(self, tracking_channel: discord.TextChannel):
         from tracking.components import BasicHabitCheckView, DetailedHabitCheckView
@@ -56,6 +62,7 @@ class TrackingHandler:
         habit_data = self.db_handler.get_habits_in_channel(tracking_channel.id)
         logger.debug(f"Retrieved habit data for channel {tracking_channel.name}: {habit_data}")
 
+        channel_view_list = []
         for user_id, habit_id, habit_name in habit_data:
             user = tracking_channel.guild.get_member(int(user_id))
             if not user:
@@ -70,16 +77,63 @@ class TrackingHandler:
             if user:
                 try:
                     logger.debug(f"Sending habit check to user: {user.name} (ID: {user.id}) for habit: {habit_name}")
-                    detailed_view = DetailedHabitCheckView(self, self.declaration_handler, user, habit_id)
+                    detailed_check_view = DetailedHabitCheckView(self, self.declaration_handler, user, habit_id)
                     
-                    await tracking_channel.send(
-                        detailed_view.check_text, 
-                        embed=detailed_view.embed,  # Include the embed in the message
-                        view=detailed_view
+                    habit_message = await tracking_channel.send(
+                        detailed_check_view.check_text, 
+                        embed=detailed_check_view.embed,  # Include the embed in the message
+                        view=detailed_check_view
                     )
+                    detailed_check_view.message_id = habit_message.id  # Store the message ID in the view
+                    channel_view_list.append(detailed_check_view)
+
                 except Exception as e:
                     logger.error(f"Could not message {user.name}: {e}")
             else:
                 logging.info(f"User not found with id: {user_id}")
             
-        return None
+        return channel_view_list
+    
+    async def end_habit_check_session(self):
+        logger.debug("Ending habit check session and disabling all buttons for incomplete checks...")
+        for detailed_check_view in self.detailed_check_view_list:
+            tracking_channel_id = detailed_check_view.habit_data['tracking_channel_id']
+            habit_id = detailed_check_view.habit_data['habit_id']
+            user = detailed_check_view.user
+            week_key = detailed_check_view.week_key
+
+            channel = await self._get_channel_by_id(tracking_channel_id)
+
+            habit_message = await channel.fetch_message(detailed_check_view.message_id)
+            # Disable all buttons in the view
+            await detailed_check_view.disable_all_buttons()
+            
+            # Edit the message to disable the buttons
+            await habit_message.edit(view=detailed_check_view)
+
+            # Mark the habit as failed in the database
+            self.db_handler.connect()
+            self.db_handler.mark_habit_completed(habit_id, completed=False, week_key=week_key)
+            self.db_handler.close()
+
+            logger.info(f"Marked habit as failed for {user.name} (ID: {user.id}).")
+            
+            self.db_handler.close()
+
+
+    async def _get_channel_by_id(self, channel_id):
+        # Try to get the channel from the cache
+        channel = self.guild.get_channel(channel_id)
+        
+        # If it's not cached, fetch from the API
+        if not channel:
+            try:
+                channel = await self.guild.fetch_channel(channel_id)
+            except discord.NotFound:
+                print(f"Channel with ID {channel_id} not found.")
+            except discord.Forbidden:
+                print(f"Bot doesn't have permission to access channel {channel_id}.")
+            except discord.HTTPException as e:
+                print(f"Failed to fetch channel {channel_id}: {e}")
+        
+        return channel

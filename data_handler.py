@@ -219,7 +219,7 @@ class DatabaseHandler:
     def mark_habit_completed(self, habit_id, completed, current_week=True, week_key=None):
         try:
             week_key = self._get_week_key(current_week, week_key) if week_key else week_key
-            logger.debug(f"Marking habit as completed: habit_id={habit_id}, completed={completed}, week_key={week_key}")
+            logger.debug(f"Marking habit: habit_id={habit_id}, completed={completed}, week_key={week_key}")
 
             with self.conn:
                 with closing(self.conn.cursor()) as cursor:
@@ -292,7 +292,7 @@ class DatabaseHandler:
             VALUES (?, ?, ?, ?)
             ON CONFLICT(habit_id, week_key) DO UPDATE SET completed=excluded.completed, streak=excluded.streak
         ''', (habit_id, week_key, completed, new_streak))
-        logger.info(f"Habit with ID {habit_id} marked as completed for week {week_key} with streak {new_streak}.")
+        logger.info(f"Habit with ID {habit_id} marked as {completed} for week {week_key} with streak {new_streak}.")
 
 
     def remove_habit_by_id(self, habit_id):
