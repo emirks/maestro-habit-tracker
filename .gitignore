@@ -1,5 +1,4 @@
 *.env*
 *.pyc
 *.pickle
-discord_bot.db
-discord_bot_dev.db
+*.db

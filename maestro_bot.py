@@ -189,17 +189,19 @@ async def check(interaction: discord.Interaction):
 # Define UTC+3 timezone by using a timedelta of 3 hours
 utc_plus_3 = timezone(timedelta(hours=3))
 
-# Task to check habits every hour
-@tasks.loop(hours=1)  # Runs every hour
+# Task to check habits at 12:00 on Saturday
+@tasks.loop(minutes=1)  # Runs every minute
 async def check_habits():
     current_time = datetime.now(utc_plus_3)  # Get the current time in UTC+3
     current_day = current_time.weekday()
     current_hour = current_time.hour
+    current_minute = current_time.minute
 
-    logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}")
+    logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}, minute: {current_minute}")
 
-    if current_day == 5 and current_hour == 12:  # Saturday at 12:xx AM UTC+3
-        logging.info("It's Saturday between 12:00 and 12:59 (UTC+3). Sending habit check.")
+    # Only send habit checks exactly at 12:00 on Saturday (day 5)
+    if current_day == 5 and current_hour == 12 and current_minute == 15:
+        logging.info("It's exactly 12:00 on Saturday (UTC+3). Sending habit check.")
         await tracking_handler.send_habit_check_to_all_tracking_channels()
 
 @check_habits.before_loop
