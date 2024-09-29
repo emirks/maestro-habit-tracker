@@ -107,18 +107,26 @@ class TrackingHandler:
             habit_message = await channel.fetch_message(detailed_check_view.message_id)
             # Disable all buttons in the view
             await detailed_check_view.disable_all_buttons()
-            
+
             # Edit the message to disable the buttons
             await habit_message.edit(view=detailed_check_view)
 
-            # Mark the habit as failed in the database
+            # Check if the habit is already completed before marking it as failed
             self.db_handler.connect()
-            self.db_handler.mark_habit_completed(habit_id, completed=False, week_key=week_key)
-            self.db_handler.close()
-
-            logger.info(f"Marked habit as failed for {user.name} (ID: {user.id}).")
+            habit_status = self.db_handler.get_habit_completion_status(habit_id, week_key)
             
+            if habit_status is None:  # No entry found, habit not checked
+                logger.info(f"Habit not marked as completed or failed. Marking as failed for {user.name} (ID: {user.id}).")
+                self.db_handler.mark_habit_completed(habit_id, completed=False, week_key=week_key)
+            elif habit_status is False:  # Habit explicitly marked as incomplete
+                logger.info(f"Habit already marked as incomplete for {user.name} (ID: {user.id}).")
+            else:
+                logger.info(f"Habit already marked as completed for {user.name} (ID: {user.id}).")
+
             self.db_handler.close()
+        
+        # Empty the detailed check view list until next week
+        self.detailed_check_view_list = None
 
 
     async def _get_channel_by_id(self, channel_id):
