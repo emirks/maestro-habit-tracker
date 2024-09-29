@@ -570,6 +570,32 @@ class DatabaseHandler:
             logger.error(f"Error retrieving current streak for habit ID {habit_id}: {e}")
             raise
 
+    def get_habit_completion_status(self, habit_id, week_key):
+        """
+        Check if the habit is marked as completed for a given habit ID and week.
+        
+        :param habit_id: The ID of the habit.
+        :param week_key: The week key (e.g., '2024-W39') to check for.
+        :return: True if the habit is completed, False if not, or None if no record exists.
+        """
+        try:
+            with closing(self.conn.cursor()) as cursor:
+                cursor.execute('''
+                    SELECT completed
+                    FROM tracking
+                    WHERE habit_id = ? AND week_key = ?
+                ''', (habit_id, week_key))
+                
+                result = cursor.fetchone()
+                if result is not None:
+                    return result[0]  # Return True (completed) or False (not completed)
+                else:
+                    return None  # No entry found
+        except sqlite3.Error as e:
+            logger.error(f"Error checking habit status for habit ID {habit_id} and week {week_key}: {e}")
+            raise
+
+
     ###########################
     ### MAINTAINING METHODS ###
     ###########################
