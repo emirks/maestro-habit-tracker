@@ -77,8 +77,11 @@ class TrackingChannelManager:
         return [channel for channel in category.text_channels if channel.name.startswith(self.tracking_channel_prefix)]
     
     async def _create_tracking_channel(self, category: discord.CategoryChannel, new_channel_name: str) -> discord.TextChannel:
-        # Create a role with the same name as the channel
-        new_role = await self.guild.create_role(name=new_channel_name)
+        # Create a role with a random color and set hoist=True to display role members separately
+        new_role = await self.guild.create_role(
+            name=new_channel_name,
+            color=discord.Color.random(),  # Assign a random color to the role
+        )
         
         # Set permissions for the role
         permission_overwrites = {
