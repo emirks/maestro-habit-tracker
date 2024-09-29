@@ -15,7 +15,6 @@ app = Flask(__name__)
 
 # Check if running in development or production mode
 environment = os.environ['ENV']
-environment = 'development'
 logging.info('\n')
 logging.info('='*32)
 logging.info(f"MODE: {environment}")
