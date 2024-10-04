@@ -201,12 +201,12 @@ async def check_habits():
     logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}, minute: {current_minute}")
 
     # Only send habit checks exactly at 12:00 on Saturday (day 5)
-    if current_day == 6 and current_hour == 13 and current_minute == 32:
+    if current_day == 5 and current_hour == 12 and current_minute == 00:
         logging.info("It's exactly 12:00 on Saturday (UTC+3). Sending habit check.")
         await tracking_handler.send_habit_check_to_all_tracking_channels()
 
     # End habit check session at 00:00 on Sunday (day 6)
-    if current_day == 6 and current_hour == 13 and current_minute == 33:
+    if current_day == 5 and current_hour == 23 and current_minute == 59:
         logging.info("It's 00:00 on Sunday (UTC+3). Ending habit check session.")
         await tracking_handler.end_habit_check_session()
 
