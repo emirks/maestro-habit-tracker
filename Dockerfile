@@ -1,8 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim
-
-# Set persistent environment variables
-ENV ENV=production
+FROM python:3.11-slim AS base
 
 # Set the working directory in the container
 WORKDIR /app
@@ -13,11 +10,23 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install gunicorn
-RUN pip install gunicorn
+# Separate stage for testing
+FROM base AS test
+
+# Install testing dependencies (pytest, etc.)
+RUN pip install pytest pytest-asyncio
+
+# Copy all code into the test container
+COPY . .
+
+# Run the tests
+CMD ["pytest", "--maxfail=1", "--disable-warnings", "-v"]
+
+# Final production stage
+FROM base AS production
 
 # Copy the current directory contents into the container
 COPY . .
 
 # Define the command to start the bot
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8080", "maestro_bot:app"]
+CMD ["python", "maestro_bot.py"]

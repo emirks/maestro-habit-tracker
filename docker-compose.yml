@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  test:
+    build:
+      context: .
+      target: test  # Target the test stage in the Dockerfile
+    image: molecular-momentum-test
+    command: pytest  # Run tests
+    environment:
+      - ENV=production
+      - PYTHONPATH=/app
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      target: production  # Target the production stage in the Dockerfile
+    image: molecular-momentum-app
+    environment:
+      - ENV=production  # Set the environment to production
+      - PYTHONPATH=/app
+    networks:
+      - app-network
+    depends_on:
+      test:
+        condition: service_completed_successfully  # Only start if test passes
+    ports:
+      - "8080:8080"
+    command: ["python", "maestro_bot.py"]
+
+networks:
+  app-network:
+    driver: bridge
