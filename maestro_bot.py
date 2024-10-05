@@ -21,7 +21,6 @@ logging.info(f"MODE: {environment}")
 logging.info('='*32)
 logging.info('\n')
 
-
 from dotenv import load_dotenv
 if environment == 'production':
     logging.info("Loading '.env'")
@@ -44,9 +43,6 @@ if not os.path.exists(DISCORD_BOT_DB_NAME):
 else:
     logging.info(f"'{DISCORD_BOT_DB_NAME}' already exists. Skipping download.")
 
-from declaration.declaration_handler import DeclarationHandler
-from tracking.tracking_handler import TrackingHandler
-
 intents = discord.Intents.default()
 intents.members = True  # Enable the 'members' privileged intent
 intents.message_content = True  # Enable message content intent if needed
@@ -61,28 +57,41 @@ HABIT_TRACKING_CATEGORY_NAME = 'TRACKING CHANNELS'
 guild = None
 declaration_handler = None
 tracking_handler = None
+db_handler = None
+
+def initialize_handlers():
+    global guild, declaration_handler, tracking_handler, db_handler  # Only necessary here where we modify global variables
+    from declaration.declaration_handler import DeclarationHandler
+    from tracking.tracking_handler import TrackingHandler
+    from data_handler import DatabaseHandler
+    
+    try:
+        guild = discord.utils.get(bot.guilds, name=GUILD_NAME)
+        if not guild:
+            raise ValueError(f"Guild '{GUILD_NAME}' not found.")
+
+        # Initialize the handlers
+        declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
+        tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
+        declaration_handler.init_tracking_handler(tracking_handler)
+        
+        # Initialize the database handler and clean up development habits
+        db_handler = DatabaseHandler()
+        db_handler.remove_all_dev_habits()
+
+        logging.info("Handlers and guild successfully initialized.")
+
+    except ValueError as ve:
+        logging.error(f"Initialization Error: {ve}")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred during initialization: {e}")
+
 
 @bot.event
 async def on_ready():
-    global guild, declaration_handler, tracking_handler
     logging.info(f'{bot.user.name} has connected to Discord!')
 
-    # Initialize the guild
-    guild = discord.utils.get(bot.guilds, name=GUILD_NAME)
-    if guild:
-        logging.debug(f"Guild found: {guild.name}")
-    else:
-        logging.warning(f"Guild '{GUILD_NAME}' not found.")
-    
-    # Initialize handlers and connect both
-    declaration_handler = DeclarationHandler(guild, HABIT_DECLARATION_CHANNEL, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
-    tracking_handler = TrackingHandler(guild, declaration_handler, HABIT_TRACKING_CHANNELS_PREFIX, HABIT_TRACKING_CATEGORY_NAME)
-    declaration_handler.init_tracking_handler(tracking_handler)
-    
-    from data_handler import DatabaseHandler
-    db_handler = DatabaseHandler()
-    # Remove all development habits
-    db_handler.remove_all_dev_habits()
+    initialize_handlers()
 
     # Start the weekly habit check task
     check_habits.start()  
@@ -201,7 +210,7 @@ async def check_habits():
     logging.debug(f"Current UTC+3 day: {current_day}, hour: {current_hour}, minute: {current_minute}")
 
     # Only send habit checks exactly at 12:00 on Saturday (day 5)
-    if current_day == 5 and current_hour == 12 and current_minute == 00:
+    if current_day == 5 and current_hour == 12 and current_minute == 0:
         logging.info("It's exactly 12:00 on Saturday (UTC+3). Sending habit check.")
         await tracking_handler.send_habit_check_to_all_tracking_channels()
 
@@ -230,6 +239,7 @@ async def before_upload_db_to_drive():
     await bot.wait_until_ready()
     logging.debug("Bot is ready, starting DB upload task loop.")
 
-# Run the bot
-logging.info("Running the bot.")
-bot.run(DISCORD_BOT_TOKEN)
+if __name__=='__main__':
+    # Run the bot
+    logging.info("Running the bot.")
+    bot.run(DISCORD_BOT_TOKEN)
