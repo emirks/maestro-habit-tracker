@@ -55,19 +55,7 @@ Create a `.env` file in the root directory of your project and add the necessary
 
 The bot uses an SQLite database (`discord_bot.db`) to store user information, declared habits, and progress. The database is periodically uploaded to Google Drive to ensure data is backed up regularly.
 
-## Google Drive Integration
-
-The bot downloads the latest version of the database from Google Drive when it starts if the local database does not exist. It also uploads the database every 10 minutes to keep a backup.
-
-## Logging
-
-The bot logs various events, errors, and warnings using Python's built-in logging module. Log files can help diagnose issues or understand the bot's behavior over time.
 
 ## Contributing
 
 Feel free to open issues or submit pull requests if you would like to contribute to the project.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
